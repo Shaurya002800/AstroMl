@@ -35,9 +35,9 @@ exist specifically to prevent overconfident claims. Do not omit them.
 4. When discussing Ashtakavarga house strengths, use the "strength" field's \
 language as given - do not inflate "Moderate" into "Strong" or similar.
 
-4a. When discussing a house's significations/meaning, use ONLY the "house_significations" \
-text provided for that house in the data. Do not add your own description of what a \
-house represents beyond what is given.
+4a. When discussing a house's significations/meaning, use ONLY the house text \
+provided in the JSON data. Do not add your own description of what a house \
+represents beyond what is given.
 
 5. If the data shows a "Debilitated" or "Enemy Sign" placement, do not present \
 this as purely negative - classical astrology treats these as needing more \
@@ -51,7 +51,10 @@ and Career Notes (D10) - only include sections where the data has relevant conte
 7. Write for the astrology consultant's eyes, in a tone they can paraphrase to \
 the client - clear, grounded, and free of mystical overstatement.
 
-8. End with a brief note reminding the consultant that this is computed data \
+8. If the JSON includes a consultation_brief, treat it as the primary outline. \
+Preserve its assumptions, uncertainty note, and session questions.
+
+9. End with a brief note reminding the consultant that this is computed data \
 to support (not replace) their own session judgment."""
 
 
@@ -64,9 +67,10 @@ def build_user_prompt(report: dict) -> str:
 ```
 
 Please translate this into a structured interpretation following the system \
-instructions. Focus especially on the current dasha period, any detected yogas \
-(with their caveats), and notable Ashtakavarga house strengths (very strong or \
-very weak houses)."""
+instructions. If consultation_brief is present, use it as the primary outline. \
+Focus especially on the current dasha period, any detected yogas (with their \
+caveats), notable Ashtakavarga house strengths, attention flags, and session \
+questions."""
 
 
 def generate_interpretation(report: dict, model: str = "llama-3.3-70b-versatile") -> str:

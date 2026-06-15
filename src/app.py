@@ -19,6 +19,7 @@ from report import generate_full_report
 from session_log import save_session, list_sessions, load_session
 from interpret import generate_interpretation
 from cities import INDIAN_CITIES, get_city_list
+from astrology_model import build_consultation_brief
 
 
 st.set_page_config(page_title="Serenova Astrology Tool", page_icon="🪔", layout="centered")
@@ -44,6 +45,17 @@ with st.form("birth_details"):
         )
     with col2:
         birth_time = st.time_input("Time of Birth", value=time(12, 0))
+
+    time_precision = st.selectbox(
+        "Birth Time Accuracy",
+        [
+            ("exact", "Exact"),
+            ("within_15_min", "Approx. within 15 minutes"),
+            ("within_1_hour", "Approx. within 1 hour"),
+            ("unknown", "Unknown / needs rectification"),
+        ],
+        format_func=lambda option: option[1],
+    )[0]
 
     st.markdown("**Place of Birth**")
 
@@ -71,14 +83,20 @@ if submitted:
     with st.spinner("Calculating chart..."):
         tf = TimezoneFinder()
         tz_name = tf.timezone_at(lat=latitude, lng=longitude)
-        tf = TimezoneFinder()
-        tz_name = tf.timezone_at(lat=latitude, lng=longitude)
+        if not tz_name:
+            st.error("Could not detect timezone for this location. Please check latitude and longitude.")
+            st.stop()
         local_tz = pytz.timezone(tz_name)
         local_dt = datetime.combine(birth_date, birth_time)
         localized_dt = local_tz.localize(local_dt)
         utc_dt = localized_dt.astimezone(pytz.utc).replace(tzinfo=None)
 
         report = generate_full_report(utc_dt, latitude, longitude)
+        consultation_brief = build_consultation_brief(report, time_precision=time_precision)
+        model_payload = {
+            "report": report,
+            "consultation_brief": consultation_brief,
+        }
 
     st.success("Chart calculated successfully")
 
@@ -105,13 +123,16 @@ if submitted:
         st.subheader("D10 Career Chart")
         st.json(report["d10_career_chart"])
 
+    with st.expander("🧭 Consultant Brief (Deterministic Model Output)", expanded=True):
+        st.json(consultation_brief)
+
     # --- LLM Interpretation ---
     st.divider()
     st.subheader("📝 Session Interpretation")
 
     with st.spinner("Generating interpretation..."):
         try:
-            interpretation = generate_interpretation(report)
+            interpretation = generate_interpretation(model_payload)
             st.markdown(interpretation)
 
             # Save session
@@ -122,8 +143,9 @@ if submitted:
                 "latitude": latitude,
                 "longitude": longitude,
                 "utc_datetime": str(utc_dt),
+                "time_precision": time_precision,
             }
-            saved_path = save_session(name, birth_details, report, interpretation)
+            saved_path = save_session(name, birth_details, model_payload, interpretation)
             st.caption("✅ Session saved")
 
         except Exception as e:
