@@ -51,6 +51,7 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
     functional_roles = report.get("functional_roles", {})
     dispositor_analysis = report.get("dispositor_analysis", {})
     transits = report.get("transits", {})
+    domain_reviews = report.get("domain_reviews", {})
 
     strong_houses = []
     attention_houses = []
@@ -142,9 +143,14 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             "Review Jupiter, Saturn, Rahu, and Ketu transits as timing context, "
             "then confirm whether their natal-house themes are currently visible."
         )
+    session_questions.extend(
+        review["consultant_prompt"]
+        for review in domain_reviews.values()
+        if review["activation_score"] >= 3
+    )
 
     return {
-        "model_version": "0.3.0",
+        "model_version": "0.4.0",
         "method": "deterministic_jyotish_rules_plus_guarded_llm_synthesis",
         "assumptions": {
             "ayanamsa": "Lahiri",
@@ -193,6 +199,13 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             ),
             "note": transits.get("note"),
         },
+        "timing_windows": {
+            "slow_planet_sign_windows": transits.get(
+                "slow_planet_sign_windows", {}
+            ),
+            "station_windows": transits.get("station_windows", {}),
+        },
+        "domain_reviews": domain_reviews,
         "career_review": {
             "d10_ascendant_sign": report["d10_career_chart"]["ascendant_sign"],
             "planets_by_house": career_focus,

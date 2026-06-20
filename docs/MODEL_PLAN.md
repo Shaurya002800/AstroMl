@@ -49,11 +49,34 @@ The model should instead predict in the astrology-specific sense: it should iden
 
 ## V3 Scope
 
-- Retrieval-augmented explanation from curated classical/traditional notes.
-- Client session memory: questions asked, consultant observations, follow-up notes.
-- Feedback loop: consultant marks useful/not useful interpretations.
-- Evaluation suite: hallucination checks, no-absolute-prediction checks, source coverage checks, and snapshot tests.
-- API service separate from the website, with auth and audit logs.
+### V0.4 Timing and Synthesis
+
+- [x] Continuous slow-planet sign ingress/egress windows.
+- [x] Nearest station windows for Mercury through Saturn.
+- [x] Evidence synthesis separating structural support from current activation.
+- [x] Initial career, relationships, finance, education, and wellbeing reviews.
+
+### V0.5 Classical Depth
+
+- [ ] Expand yoga rules and implement cancellation/strength conditions.
+- [ ] Add D2, D3, D4, D12, D16, D24, D30, and D60 after formula validation.
+- [ ] Add Shadbala and more complete planetary-strength analysis.
+- [ ] Add birth-time rectification workflow and sensitivity reports.
+
+### V0.6 Validation and Sources
+
+- [ ] Machine-readable source registry per rule and convention.
+- [ ] Golden-chart fixtures compared with trusted Jyotish software.
+- [ ] Independent expert review of formulas and interpretation rules.
+- [ ] Hallucination, absolute-claim, source-coverage, and regression evaluation.
+
+### V0.7 Product and Learning Loop
+
+- [ ] Retrieval-augmented explanation from curated classical/traditional notes.
+- [ ] Consultant session observations and follow-up notes.
+- [ ] Feedback scoring for useful/not-useful interpretations.
+- [ ] Authenticated API separate from the website.
+- [ ] Encryption, retention controls, audit logs, and client-data deletion.
 
 ## Safety Rules
 

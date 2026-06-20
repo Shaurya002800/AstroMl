@@ -8,7 +8,7 @@ This is not the public website. The intended user is the consultant during a liv
 
 1. Birth details are entered in Streamlit.
 2. Swiss Ephemeris computes sidereal planetary positions using Lahiri ayanamsa.
-3. Deterministic modules calculate chart features: D1, D9, D10, D7, Vimshottari dasha through Pratyantar, dignity, motion, combustion, whole-sign house lordships, functional roles, dispositors, Parashari aspects, query-date transits, Ashtakavarga, and selected yogas.
+3. Deterministic modules calculate chart features: D1, D9, D10, D7, Vimshottari dasha through Pratyantar, dignity, motion, combustion, whole-sign house lordships, functional roles, dispositors, Parashari aspects, query-date transits and timing windows, Ashtakavarga, selected yogas, and bounded domain reviews.
 4. `astrology_model.py` converts computed facts into a consultation brief with caveats, confidence notes, and suggested follow-up questions.
 5. The LLM layer translates only the structured facts into natural language for the consultant.
 
@@ -36,6 +36,7 @@ Astrology should be presented as interpretive guidance, not guaranteed predictio
 - Combustion thresholds are explicit working conventions and are returned with the computed result.
 - Functional roles are ownership-based tendencies, not unconditional benefic/malefic verdicts.
 - Transits are mapped from natal Ascendant and Moon and must be combined with natal and dasha evidence.
+- Domain support and activation scores summarize evidence; they are not outcome probabilities.
 
 ## Development Checks
 

@@ -18,6 +18,7 @@ from house_analysis import analyze_house_lordships, compute_parashari_aspects
 from functional_roles import classify_functional_roles
 from dispositors import analyze_dispositors
 from transits import compute_transit_report
+from synthesis import build_domain_reviews
 from dasha import get_current_dasha
 from ashtakavarga import compute_sarvashtakavarga, interpret_house_strength
 from yogas import detect_all_yogas
@@ -179,6 +180,8 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
             "dasamsa_sign": data["dasamsa_sign"],
             "saptamsa_sign": data["saptamsa_sign"],
         }
+
+    report["domain_reviews"] = build_domain_reviews(report)
 
     return report
 

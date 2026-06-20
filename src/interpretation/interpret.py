@@ -69,7 +69,13 @@ final dispositor or cycle guarantees a life outcome.
 13. Transits are timing context only. Never make a prediction from transit alone; \
 combine it with natal promise, active dasha, and relevant divisional evidence.
 
-14. End with a brief note reminding the consultant that this is computed data \
+14. Domain review "support" and "activation" scores are internal evidence summaries, \
+not probabilities. Preserve both supporting and attention evidence.
+
+15. Wellbeing output must never diagnose illness or suggest replacing a qualified \
+medical professional. Finance output must not be presented as investment advice.
+
+16. End with a brief note reminding the consultant that this is computed data \
 to support (not replace) their own session judgment."""
 
 

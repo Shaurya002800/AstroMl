@@ -142,6 +142,9 @@ if submitted:
         st.subheader("Transits for Analysis Date")
         st.json(report["transits"])
 
+        st.subheader("Domain Reviews")
+        st.json(report["domain_reviews"])
+
         st.subheader("Ashtakavarga (House Strengths)")
         st.json(report["ashtakavarga"]["sarva_by_house"])
 

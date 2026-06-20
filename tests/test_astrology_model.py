@@ -21,7 +21,7 @@ class AstrologyModelTests(unittest.TestCase):
         report = generate_full_report(self.birth_dt_utc, self.lat, self.lon)
         brief = build_consultation_brief(report, time_precision="within_15_min")
 
-        self.assertEqual(brief["model_version"], "0.3.0")
+        self.assertEqual(brief["model_version"], "0.4.0")
         self.assertEqual(brief["assumptions"]["ayanamsa"], "Lahiri")
         self.assertIn("not as a guaranteed prediction", brief["uncertainty_note"])
         self.assertIn("15 minutes", brief["assumptions"]["time_precision_note"])
@@ -31,6 +31,8 @@ class AstrologyModelTests(unittest.TestCase):
         self.assertIn("functional_role_review", brief)
         self.assertIn("dispositor_review", brief)
         self.assertIn("transit_review", brief)
+        self.assertIn("timing_windows", brief)
+        self.assertIn("domain_reviews", brief)
 
     def test_create_session_model_returns_report_and_brief(self):
         payload = create_session_model(self.birth_dt_utc, self.lat, self.lon)

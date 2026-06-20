@@ -22,7 +22,11 @@ from functional_roles import classify_functional_roles
 from house_analysis import analyze_house_lordships, compute_parashari_aspects
 from planetary_conditions import annotate_planetary_conditions, angular_separation
 from report import generate_full_report
-from transits import compute_transit_report
+from transits import (
+    compute_sign_window,
+    compute_station_window,
+    compute_transit_report,
+)
 
 
 class CalculationTests(unittest.TestCase):
@@ -43,6 +47,7 @@ class CalculationTests(unittest.TestCase):
         self.assertIn("functional_roles", report)
         self.assertIn("dispositor_analysis", report)
         self.assertIn("transits", report)
+        self.assertIn("domain_reviews", report)
 
     def test_sarvashtakavarga_total_is_classical_337(self):
         chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
@@ -214,6 +219,49 @@ class CalculationTests(unittest.TestCase):
             set(transit_report["slow_transit_focus"]),
             {"Jupiter", "Saturn", "Rahu", "Ketu"},
         )
+
+    def test_slow_planet_sign_window_contains_query_date(self):
+        query = datetime(2026, 6, 20, 6, 30)
+        window = compute_sign_window("Jupiter", query)
+
+        self.assertEqual(window["sign"], "Cancer")
+        self.assertLess(
+            datetime.fromisoformat(window["entered_sign_utc"]),
+            query,
+        )
+        self.assertGreater(
+            datetime.fromisoformat(window["leaves_sign_utc"]),
+            query,
+        )
+
+    def test_station_window_reports_motion_and_future_station(self):
+        query = datetime(2026, 6, 20, 6, 30)
+        window = compute_station_window("Saturn", query)
+
+        self.assertEqual(window["motion_at_query"], "Direct")
+        self.assertIsNotNone(window["next_station_utc"])
+        self.assertGreater(
+            datetime.fromisoformat(window["next_station_utc"]),
+            query,
+        )
+
+    def test_domain_reviews_separate_support_from_activation(self):
+        report = generate_full_report(
+            self.birth_dt_utc,
+            self.lat,
+            self.lon,
+            datetime(2026, 6, 20, 6, 30),
+        )
+        reviews = report["domain_reviews"]
+
+        self.assertEqual(
+            set(reviews),
+            {"career", "relationships", "finance", "education", "wellbeing"},
+        )
+        for review in reviews.values():
+            self.assertIsInstance(review["support_score"], int)
+            self.assertIsInstance(review["activation_score"], int)
+            self.assertIn("not an event prediction", review["caveat"])
 
 
 if __name__ == "__main__":
