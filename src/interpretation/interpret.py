@@ -54,7 +54,22 @@ the client - clear, grounded, and free of mystical overstatement.
 8. If the JSON includes a consultation_brief, treat it as the primary outline. \
 Preserve its assumptions, uncertainty note, and session questions.
 
-9. End with a brief note reminding the consultant that this is computed data \
+9. Retrograde motion and combustion are conditions requiring context, not \
+standalone positive or negative verdicts. Preserve any convention notes.
+
+10. Treat house lordships and aspects as supporting evidence. Do not infer a \
+specific event solely from one lord placement or aspect.
+
+11. Functional roles are ownership-based tendencies, not fixed good/bad labels. \
+Preserve mixed-role, Maraka, Dusthana, and Yogakaraka caveats as given.
+
+12. A dispositor chain describes structural dependency. Do not claim that a \
+final dispositor or cycle guarantees a life outcome.
+
+13. Transits are timing context only. Never make a prediction from transit alone; \
+combine it with natal promise, active dasha, and relevant divisional evidence.
+
+14. End with a brief note reminding the consultant that this is computed data \
 to support (not replace) their own session judgment."""
 
 

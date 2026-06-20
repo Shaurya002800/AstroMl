@@ -47,6 +47,10 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
     planets = report["planets"]
     dasha = report["current_dasha"]
     yogas = report.get("yogas", [])
+    house_lordships = report.get("house_lordships", {}).get("houses", {})
+    functional_roles = report.get("functional_roles", {})
+    dispositor_analysis = report.get("dispositor_analysis", {})
+    transits = report.get("transits", {})
 
     strong_houses = []
     attention_houses = []
@@ -77,6 +81,8 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             "pada": data["pada"],
             "dignity": status,
             "note": data["dignity_note"],
+            "motion": data["motion"],
+            "combustion": data["combustion"],
             "navamsa_sign": data["navamsa_sign"],
             "dasamsa_sign": data["dasamsa_sign"],
         }
@@ -84,6 +90,37 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             dignities.append(item)
         elif status in {"Debilitated", "Enemy Sign"}:
             attention_planets.append(item)
+
+        if data["combustion"]["is_combust"] and item not in attention_planets:
+            attention_planets.append(item)
+
+    retrograde_planets = [
+        {
+            "planet": planet,
+            "sign": data["sign"],
+            "house": next(
+                (
+                    int(house)
+                    for house, house_data in house_lordships.items()
+                    if planet in house_data["occupants"]
+                ),
+                None,
+            ),
+            "longitude_speed": data["longitude_speed"],
+            "note": (
+                "Retrograde motion is a condition for contextual review, not "
+                "automatically positive or negative."
+            ),
+        }
+        for planet, data in planets.items()
+        if data["is_retrograde"]
+    ]
+
+    priority_lordships = {
+        house: house_lordships[house]
+        for house in ("1", "5", "7", "9", "10")
+        if house in house_lordships
+    }
 
     d10_planets_by_house = report["d10_career_chart"]["planets_by_house"]
     career_focus = [
@@ -99,9 +136,15 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
     ]
 
     session_questions = _build_session_questions(dasha, strong_houses, attention_houses, yogas)
+    slow_transit_focus = transits.get("slow_transit_focus", {})
+    if slow_transit_focus:
+        session_questions.append(
+            "Review Jupiter, Saturn, Rahu, and Ketu transits as timing context, "
+            "then confirm whether their natal-house themes are currently visible."
+        )
 
     return {
-        "model_version": "0.1.0",
+        "model_version": "0.3.0",
         "method": "deterministic_jyotish_rules_plus_guarded_llm_synthesis",
         "assumptions": {
             "ayanamsa": "Lahiri",
@@ -118,15 +161,37 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             "antardasha_lord": dasha["antardasha"]["lord"] if dasha.get("antardasha") else None,
             "antardasha_start": dasha["antardasha"]["start"] if dasha.get("antardasha") else None,
             "antardasha_end": dasha["antardasha"]["end"] if dasha.get("antardasha") else None,
+            "pratyantar_lord": dasha["pratyantar"]["lord"] if dasha.get("pratyantar") else None,
+            "pratyantar_start": dasha["pratyantar"]["start"] if dasha.get("pratyantar") else None,
+            "pratyantar_end": dasha["pratyantar"]["end"] if dasha.get("pratyantar") else None,
         },
         "notable_strengths": {
             "strong_houses": strong_houses,
             "strong_planets": dignities,
             "detected_yogas": yogas,
+            "priority_house_lordships": priority_lordships,
         },
         "attention_flags": {
             "weaker_houses": attention_houses,
             "challenging_planets": attention_planets,
+            "retrograde_planets_for_review": retrograde_planets,
+        },
+        "aspect_review": report.get("parashari_aspects", {}),
+        "functional_role_review": functional_roles,
+        "dispositor_review": {
+            "final_dispositors": dispositor_analysis.get("final_dispositors", []),
+            "cycles": dispositor_analysis.get("cycles", []),
+            "chains": dispositor_analysis.get("chains", {}),
+            "note": dispositor_analysis.get("note"),
+        },
+        "transit_review": {
+            "query_datetime_utc": transits.get("query_datetime_utc"),
+            "slow_transit_focus": slow_transit_focus,
+            "same_sign_conjunctions": transits.get("same_sign_conjunctions", []),
+            "parashari_aspects_to_natal_chart": transits.get(
+                "parashari_aspects_to_natal_chart", []
+            ),
+            "note": transits.get("note"),
         },
         "career_review": {
             "d10_ascendant_sign": report["d10_career_chart"]["ascendant_sign"],
@@ -166,6 +231,11 @@ def _build_session_questions(
             + (
                 f" with {dasha['antardasha']['lord']} antardasha"
                 if dasha.get("antardasha")
+                else ""
+            )
+            + (
+                f" and {dasha['pratyantar']['lord']} pratyantar"
+                if dasha.get("pratyantar")
                 else ""
             )
             + ". Ask what themes have become most active recently."

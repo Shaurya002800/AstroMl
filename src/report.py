@@ -9,10 +9,15 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "calculations"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "knowledge_base"))
 
-from datetime import datetime
+from datetime import datetime, timezone
 from chart import compute_chart
 from dignity import annotate_chart_with_dignity_and_navamsa, ZODIAC_SIGNS
 from divisional_charts import annotate_chart_with_divisional_charts, get_dasamsa_lagna_and_houses
+from planetary_conditions import annotate_planetary_conditions
+from house_analysis import analyze_house_lordships, compute_parashari_aspects
+from functional_roles import classify_functional_roles
+from dispositors import analyze_dispositors
+from transits import compute_transit_report
 from dasha import get_current_dasha
 from ashtakavarga import compute_sarvashtakavarga, interpret_house_strength
 from yogas import detect_all_yogas
@@ -39,17 +44,39 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
     # Layer 1b: Dignity + Navamsa (D9)
     chart = annotate_chart_with_dignity_and_navamsa(chart)
 
-    # Layer 1c: Divisional charts (D10, D7)
+    # Layer 1c: Motion and combustion
+    chart = annotate_planetary_conditions(chart)
+
+    # Layer 1d: Divisional charts (D10, D7)
     chart = annotate_chart_with_divisional_charts(chart)
 
     ascendant_sign = chart["ascendant"]["sign"]
 
-    # Layer 1d: Dasha timeline
+    # Layer 1e: Dasha timeline
     moon_longitude = chart["planets"]["Moon"]["longitude"]
-    dasha_info = get_current_dasha(birth_datetime_utc, moon_longitude, query_datetime)
+    evaluated_query_datetime = (
+        query_datetime
+        or datetime.now(timezone.utc).replace(tzinfo=None)
+    )
+    dasha_info = get_current_dasha(
+        birth_datetime_utc,
+        moon_longitude,
+        evaluated_query_datetime,
+    )
 
-    # Layer 1e: Ashtakavarga
+    # Layer 1f: Ashtakavarga
     ashtakavarga = compute_sarvashtakavarga(chart, ascendant_sign)
+
+    # Layer 1g: Whole-sign house ownership and Parashari aspects
+    house_lordships = analyze_house_lordships(chart, ascendant_sign)
+    aspects = compute_parashari_aspects(chart, ascendant_sign)
+    functional_roles = classify_functional_roles(ascendant_sign)
+    dispositors = analyze_dispositors(chart)
+    transits = compute_transit_report(
+        evaluated_query_datetime,
+        chart,
+        ascendant_sign,
+    )
 
     # Layer 2: Yogas (rules engine)
     yogas = detect_all_yogas(chart, ascendant_sign, ZODIAC_SIGNS)
@@ -63,7 +90,9 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
         "meta": {
             "birth_datetime_utc": birth_datetime_utc.isoformat(),
             "birth_location": {"latitude": lat, "longitude": lon},
-            "query_date": (query_datetime or datetime.now()).isoformat()
+            "query_date": evaluated_query_datetime.isoformat(),
+            "ayanamsa": "Lahiri",
+            "house_system": "Whole sign for lordships, yogas, and aspects",
         },
 
         "ascendant": {
@@ -85,8 +114,29 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
                 "lord": dasha_info["antardasha"]["lord"],
                 "start": dasha_info["antardasha"]["start"].isoformat(),
                 "end": dasha_info["antardasha"]["end"].isoformat(),
-            } if dasha_info.get("antardasha") else None
+            } if dasha_info.get("antardasha") else None,
+            "pratyantar": {
+                "lord": dasha_info["pratyantar"]["lord"],
+                "start": dasha_info["pratyantar"]["start"].isoformat(),
+                "end": dasha_info["pratyantar"]["end"].isoformat(),
+            } if dasha_info.get("pratyantar") else None,
         },
+
+        "house_lordships": {
+            "house_system": house_lordships["house_system"],
+            "houses": {
+                str(house): data
+                for house, data in house_lordships["houses"].items()
+            },
+        },
+
+        "parashari_aspects": aspects,
+
+        "functional_roles": functional_roles,
+
+        "dispositor_analysis": dispositors,
+
+        "transits": transits,
 
         "ashtakavarga": {
             "sarva_by_house": {
@@ -121,6 +171,10 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
             "pada": data["pada"],
             "dignity": data["dignity"]["status"],
             "dignity_note": data["dignity"]["note"],
+            "motion": data["motion"],
+            "is_retrograde": data["is_retrograde"],
+            "longitude_speed": data["longitude_speed"],
+            "combustion": data["combustion"],
             "navamsa_sign": data["navamsa_sign"],
             "dasamsa_sign": data["dasamsa_sign"],
             "saptamsa_sign": data["saptamsa_sign"],

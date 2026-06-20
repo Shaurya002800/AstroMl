@@ -57,6 +57,13 @@ with st.form("birth_details"):
         format_func=lambda option: option[1],
     )[0]
 
+    analysis_date = st.date_input(
+        "Analysis Date",
+        value=date.today(),
+        min_value=date(1920, 1, 1),
+        max_value=date(2100, 12, 31),
+    )
+
     st.markdown("**Place of Birth**")
 
     city_options = ["-- Select a city --"] + get_city_list() + ["Other (enter manually)"]
@@ -90,8 +97,17 @@ if submitted:
         local_dt = datetime.combine(birth_date, birth_time)
         localized_dt = local_tz.localize(local_dt)
         utc_dt = localized_dt.astimezone(pytz.utc).replace(tzinfo=None)
+        analysis_local_dt = local_tz.localize(
+            datetime.combine(analysis_date, time(12, 0))
+        )
+        analysis_utc_dt = analysis_local_dt.astimezone(pytz.utc).replace(tzinfo=None)
 
-        report = generate_full_report(utc_dt, latitude, longitude)
+        report = generate_full_report(
+            utc_dt,
+            latitude,
+            longitude,
+            query_datetime=analysis_utc_dt,
+        )
         consultation_brief = build_consultation_brief(report, time_precision=time_precision)
         model_payload = {
             "report": report,
@@ -110,6 +126,21 @@ if submitted:
 
         st.subheader("Current Dasha")
         st.json(report["current_dasha"])
+
+        st.subheader("House Lordships")
+        st.json(report["house_lordships"])
+
+        st.subheader("Parashari Aspects")
+        st.json(report["parashari_aspects"])
+
+        st.subheader("Functional Planetary Roles")
+        st.json(report["functional_roles"])
+
+        st.subheader("Dispositor Analysis")
+        st.json(report["dispositor_analysis"])
+
+        st.subheader("Transits for Analysis Date")
+        st.json(report["transits"])
 
         st.subheader("Ashtakavarga (House Strengths)")
         st.json(report["ashtakavarga"]["sarva_by_house"])
@@ -144,6 +175,8 @@ if submitted:
                 "longitude": longitude,
                 "utc_datetime": str(utc_dt),
                 "time_precision": time_precision,
+                "analysis_date": str(analysis_date),
+                "analysis_datetime_utc": str(analysis_utc_dt),
             }
             saved_path = save_session(name, birth_details, model_payload, interpretation)
             st.caption("✅ Session saved")

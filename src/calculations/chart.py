@@ -61,18 +61,52 @@ def get_nakshatra(longitude: float):
 
 
 def get_planet_positions(jd: float) -> dict:
-    """Return sidereal longitude for each planet at given Julian Day."""
+    """Return sidereal longitude and daily motion for each planet."""
     positions = {}
-    flags = swe.FLG_SIDEREAL
+    flags = swe.FLG_SIDEREAL | swe.FLG_SPEED
 
     for name, code in PLANETS.items():
-        lon, _ = swe.calc_ut(jd, code, flags)[0:2] if False else (swe.calc_ut(jd, code, flags)[0][0], None)
-        positions[name] = lon
+        values, _ = swe.calc_ut(jd, code, flags)
+        positions[name] = {
+            "longitude": values[0],
+            "longitude_speed": values[3],
+        }
 
     # Ketu = Rahu + 180
-    positions["Ketu"] = (positions["Rahu"] + 180) % 360
+    positions["Ketu"] = {
+        "longitude": (positions["Rahu"]["longitude"] + 180) % 360,
+        "longitude_speed": positions["Rahu"]["longitude_speed"],
+    }
 
     return positions
+
+
+def compute_planetary_snapshot(datetime_utc: datetime) -> dict:
+    """Compute geocentric sidereal planetary positions without house data."""
+    jd = get_julian_day(datetime_utc)
+    planet_positions = get_planet_positions(jd)
+    planets = {}
+
+    for planet, position in planet_positions.items():
+        longitude = position["longitude"]
+        longitude_speed = position["longitude_speed"]
+        sign, degree = get_sign_and_degree(longitude)
+        nakshatra, pada = get_nakshatra(longitude)
+        planets[planet] = {
+            "longitude": round(longitude, 4),
+            "longitude_speed": round(longitude_speed, 6),
+            "is_retrograde": longitude_speed < 0,
+            "sign": sign,
+            "degree": round(degree, 4),
+            "nakshatra": nakshatra,
+            "pada": pada,
+        }
+
+    return {
+        "julian_day": jd,
+        "datetime_utc": datetime_utc,
+        "planets": planets,
+    }
 
 
 def get_ascendant(jd: float, lat: float, lon: float) -> float:
@@ -90,7 +124,7 @@ def compute_chart(birth_datetime_utc: datetime, lat: float, lon: float) -> dict:
     """
     jd = get_julian_day(birth_datetime_utc)
 
-    planet_positions = get_planet_positions(jd)
+    planetary_snapshot = compute_planetary_snapshot(birth_datetime_utc)
     ascendant_lon = get_ascendant(jd, lat, lon)
 
     chart = {
@@ -102,19 +136,8 @@ def compute_chart(birth_datetime_utc: datetime, lat: float, lon: float) -> dict:
             "nakshatra": get_nakshatra(ascendant_lon)[0],
             "pada": get_nakshatra(ascendant_lon)[1],
         },
-        "planets": {}
+        "planets": planetary_snapshot["planets"],
     }
-
-    for planet, lon_val in planet_positions.items():
-        sign, deg = get_sign_and_degree(lon_val)
-        nak, pada = get_nakshatra(lon_val)
-        chart["planets"][planet] = {
-            "longitude": round(lon_val, 4),
-            "sign": sign,
-            "degree": round(deg, 4),
-            "nakshatra": nak,
-            "pada": pada,
-        }
 
     return chart
 

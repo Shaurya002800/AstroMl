@@ -38,6 +38,12 @@ def get_dasha_balance_at_birth(moon_longitude: float):
     return starting_lord, years_remaining
 
 
+def get_dasha_elapsed_at_birth(moon_longitude: float):
+    """Return the starting dasha lord and elapsed years at birth."""
+    starting_lord, years_remaining = get_dasha_balance_at_birth(moon_longitude)
+    return starting_lord, DASHA_YEARS[starting_lord] - years_remaining
+
+
 def years_to_timedelta(years: float) -> timedelta:
     """Convert fractional years to a timedelta (approximation: 365.25 days/year)."""
     return timedelta(days=years * 365.25)
@@ -48,19 +54,21 @@ def compute_mahadasha_timeline(birth_datetime, moon_longitude: float):
     Return a full sequence of mahadasha periods with start/end dates,
     starting from birth and covering 120 years.
     """
-    starting_lord, years_remaining = get_dasha_balance_at_birth(moon_longitude)
+    starting_lord, years_elapsed = get_dasha_elapsed_at_birth(moon_longitude)
 
     timeline = []
-    current_start = birth_datetime
+    current_start = birth_datetime - years_to_timedelta(years_elapsed)
     start_index = DASHA_SEQUENCE.index(starting_lord)
 
-    # First dasha (partial, remaining portion)
-    current_end = current_start + years_to_timedelta(years_remaining)
+    # Keep the true pre-birth start so nested periods do not restart at birth.
+    full_years = DASHA_YEARS[starting_lord]
+    current_end = current_start + years_to_timedelta(full_years)
     timeline.append({
         "lord": starting_lord,
         "start": current_start,
         "end": current_end,
-        "duration_years": round(years_remaining, 2)
+        "duration_years": full_years,
+        "birth_occurs_within_period": True,
     })
     current_start = current_end
 
@@ -73,7 +81,8 @@ def compute_mahadasha_timeline(birth_datetime, moon_longitude: float):
             "lord": lord,
             "start": current_start,
             "end": current_end,
-            "duration_years": full_years
+            "duration_years": full_years,
+            "birth_occurs_within_period": False,
         })
         current_start = current_end
 
@@ -98,11 +107,43 @@ def compute_antardasha(mahadasha_lord: str, mahadasha_start, mahadasha_duration_
             "lord": sub_lord,
             "start": current_start,
             "end": current_end,
-            "duration_years": round(sub_years, 3)
+            "duration_years": sub_years,
         })
         current_start = current_end
 
     return antardashas
+
+
+def compute_pratyantar_dasha(
+    antardasha_lord: str,
+    antardasha_start,
+    antardasha_duration_years: float,
+):
+    """
+    Compute Pratyantar dasha periods within an Antardasha.
+
+    The sequence begins with the Antardasha lord and each duration is
+    proportional to the Vimshottari years of the Pratyantar lord.
+    """
+    start_index = DASHA_SEQUENCE.index(antardasha_lord)
+    periods = []
+    current_start = antardasha_start
+
+    for i in range(9):
+        lord = DASHA_SEQUENCE[(start_index + i) % 9]
+        duration_years = (
+            DASHA_YEARS[lord] / TOTAL_YEARS
+        ) * antardasha_duration_years
+        current_end = current_start + years_to_timedelta(duration_years)
+        periods.append({
+            "lord": lord,
+            "start": current_start,
+            "end": current_end,
+            "duration_years": duration_years,
+        })
+        current_start = current_end
+
+    return periods
 
 
 def get_current_dasha(birth_datetime, moon_longitude: float, query_datetime=None):
@@ -135,9 +176,24 @@ def get_current_dasha(birth_datetime, moon_longitude: float, query_datetime=None
             current_antar = sub
             break
 
+    current_pratyantar = None
+    pratyantar_periods = []
+    if current_antar:
+        pratyantar_periods = compute_pratyantar_dasha(
+            current_antar["lord"],
+            current_antar["start"],
+            current_antar["duration_years"],
+        )
+        for period in pratyantar_periods:
+            if period["start"] <= query_datetime < period["end"]:
+                current_pratyantar = period
+                break
+
     return {
         "mahadasha": current_maha,
         "antardasha": current_antar,
+        "pratyantar": current_pratyantar,
+        "current_antardasha_pratyantar_timeline": pratyantar_periods,
         "full_mahadasha_timeline": timeline
     }
 
