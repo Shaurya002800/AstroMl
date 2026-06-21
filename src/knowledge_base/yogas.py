@@ -4,6 +4,8 @@ Each yoga is defined as a condition-checking function + metadata.
 Detected yogas are returned with classical source references and effect descriptions.
 """
 
+from planetary_conditions import angular_separation
+
 KENDRA_HOUSES = [1, 4, 7, 10]  # Quadrant houses - most important for yogas
 TRIKONA_HOUSES = [1, 5, 9]     # Trinal houses
 
@@ -35,6 +37,8 @@ def check_gajakesari_yoga(chart: dict, ascendant_sign: str, zodiac_signs: list) 
         return {
             "name": "Gajakesari Yoga",
             "present": True,
+            "involved_planets": ["Moon", "Jupiter"],
+            "simplified": False,
             "source": "Brihat Parashara Hora Shastra, Ch. 36",
             "condition_met": f"Moon (House {moon_house}) and Jupiter (House {jupiter_house}) are in mutual Kendra",
             "effect": "Associated with intelligence, good reputation, and respect in society. "
@@ -58,18 +62,26 @@ def check_budhaditya_yoga(chart: dict) -> dict:
         # Check combustion - Mercury too close to Sun can be 'combust' (weakened)
         sun_lon = chart["planets"]["Sun"]["longitude"]
         mercury_lon = chart["planets"]["Mercury"]["longitude"]
-        degree_diff = abs(sun_lon - mercury_lon)
-        is_combust = degree_diff < 12  # approx combustion orb for Mercury
+        degree_diff = angular_separation(sun_lon, mercury_lon)
+        is_combust = chart["planets"]["Mercury"].get(
+            "combustion", {}
+        ).get("is_combust", degree_diff < 12)
 
         return {
             "name": "Budhaditya Yoga",
             "present": True,
+            "involved_planets": ["Sun", "Mercury"],
+            "simplified": False,
             "source": "Commonly referenced in classical and traditional texts",
             "condition_met": f"Sun and Mercury both in {sun_sign}",
             "effect": "Associated with sharp intellect, communication skills, and analytical ability.",
-            "caveat": "If Mercury is combust (very close to Sun, as appears to be the case here)"
-                      if is_combust else
-                      "Mercury is not combust here, which generally supports the positive expression of this yoga.",
+            "caveat": (
+                "Mercury is combust under the configured orb, so this yoga "
+                "requires substantial contextual review."
+                if is_combust else
+                "Mercury is not combust under the configured orb, which removes "
+                "one common weakening condition."
+            ),
             "combust": is_combust
         }
     return {"name": "Budhaditya Yoga", "present": False}
@@ -117,6 +129,12 @@ def check_kendra_trikona_raj_yoga(chart: dict, ascendant_sign: str, zodiac_signs
         return {
             "name": "Raja Yoga (Kendra-Trikona Lord Conjunction)",
             "present": True,
+            "involved_planets": sorted({
+                planet
+                for first, second, _ in detected
+                for planet in (first, second)
+            }),
+            "simplified": True,
             "source": "General Raja Yoga principle, BPHS",
             "condition_met": pairs_str,
             "effect": "Indicates potential for rise in status, authority, and success — "
@@ -140,6 +158,8 @@ def check_chandra_mangal_yoga(chart: dict) -> dict:
         return {
             "name": "Chandra-Mangal Yoga",
             "present": True,
+            "involved_planets": ["Moon", "Mars"],
+            "simplified": False,
             "source": "Commonly referenced in traditional texts",
             "condition_met": f"Moon and Mars both in {moon_sign}",
             "effect": "Associated with financial resourcefulness, business acumen, "
@@ -192,6 +212,12 @@ def check_neecha_bhanga_raja_yoga(chart: dict, ascendant_sign: str, zodiac_signs
         return {
             "name": "Neecha Bhanga Raja Yoga (Debilitation Cancellation)",
             "present": True,
+            "involved_planets": sorted({
+                planet
+                for debilitated, _, dispositor, _ in detected
+                for planet in (debilitated, dispositor)
+            }),
+            "simplified": True,
             "source": "BPHS - planetary strength principles",
             "condition_met": details,
             "effect": "A planet's debilitation may be substantially 'cancelled' or even "
@@ -242,6 +268,8 @@ def check_pancha_mahapurusha_yogas(chart: dict, ascendant_sign: str, zodiac_sign
         return {
             "name": "Pancha Mahapurusha Yoga(s)",
             "present": True,
+            "involved_planets": sorted({planet for planet, _, _, _ in detected}),
+            "simplified": False,
             "source": "Brihat Parashara Hora Shastra, Ch. 75",
             "condition_met": names,
             "effect": "These yogas are associated with exceptional strength in the "
@@ -287,9 +315,37 @@ def check_kemadruma_yoga(chart: dict, ascendant_sign: str, zodiac_signs: list) -
             break
 
     if not has_support:
+        moon_house = get_house_of_planet(
+            moon_sign, ascendant_sign, zodiac_signs
+        )
+        cancellations = []
+        if moon_house in KENDRA_HOUSES:
+            cancellations.append(
+                f"Moon is in Kendra house {moon_house} from the Ascendant"
+            )
+
+        planets_in_kendra_from_moon = []
+        for planet in other_planets:
+            planet_sign = chart["planets"][planet]["sign"]
+            relative_house = (
+                (
+                    zodiac_signs.index(planet_sign)
+                    - moon_sign_index
+                ) % 12
+            ) + 1
+            if relative_house in [4, 7, 10]:
+                planets_in_kendra_from_moon.append(planet)
+        if planets_in_kendra_from_moon:
+            cancellations.append(
+                "Planets in Kendra from Moon: "
+                + ", ".join(sorted(planets_in_kendra_from_moon))
+            )
+
         return {
             "name": "Kemadruma Yoga",
             "present": True,
+            "involved_planets": ["Moon"],
+            "simplified": True,
             "source": "BPHS - classical challenging yoga",
             "condition_met": f"No planets conjunct Moon (in {moon_sign}) or in the signs "
                             f"immediately before/after it",
@@ -301,7 +357,13 @@ def check_kemadruma_yoga(chart: dict, ascendant_sign: str, zodiac_signs: list) -
                       "this simplified detection. A 'present: true' result here should be "
                       "treated as a preliminary flag only, NOT a confirmed reading. Many "
                       "charts that technically meet this base condition have the yoga fully "
-                      "cancelled by other factors."
+                      "cancelled by other factors.",
+            "cancellation_status": (
+                "cancellation_indicated"
+                if cancellations
+                else "no_checked_cancellation_found"
+            ),
+            "cancellation_evidence": cancellations,
         }
     return {"name": "Kemadruma Yoga", "present": False}
 
@@ -321,7 +383,61 @@ def detect_all_yogas(chart: dict, ascendant_sign: str, zodiac_signs: list) -> li
         check_kemadruma_yoga(chart, ascendant_sign, zodiac_signs),
     ]
 
-    return [yoga for yoga in checks if yoga.get("present")]
+    detected = [yoga for yoga in checks if yoga.get("present")]
+    for yoga in detected:
+        yoga["strength_assessment"] = assess_yoga_strength(yoga, chart)
+    return detected
+
+
+def assess_yoga_strength(yoga: dict, chart: dict) -> dict:
+    """Build a transparent preliminary strength assessment for a detected yoga."""
+    score = 0
+    evidence = []
+
+    for planet in yoga.get("involved_planets", []):
+        data = chart["planets"].get(planet)
+        if not data:
+            continue
+        dignity = data.get("dignity", {}).get("status", "Unknown")
+        dignity_score = {
+            "Exalted": 2,
+            "Own Sign (Swakshetra)": 2,
+            "Friendly Sign": 1,
+            "Enemy Sign": -1,
+            "Debilitated": -2,
+        }.get(dignity, 0)
+        combust = data.get("combustion", {}).get("is_combust", False)
+        score += dignity_score
+        if combust:
+            score -= 1
+        evidence.append({
+            "planet": planet,
+            "dignity": dignity,
+            "combust": combust,
+            "score_contribution": dignity_score - (1 if combust else 0),
+        })
+
+    if yoga.get("cancellation_status") == "cancellation_indicated":
+        score -= 3
+        label = "Cancellation indicated; treat as strongly mitigated"
+    elif yoga.get("simplified"):
+        label = "Preliminary flag requiring manual review"
+    elif score >= 3:
+        label = "Strong supporting conditions"
+    elif score >= 1:
+        label = "Moderate supporting conditions"
+    else:
+        label = "Limited or mixed supporting conditions"
+
+    return {
+        "score": score,
+        "label": label,
+        "planetary_evidence": evidence,
+        "note": (
+            "This score is an internal evidence summary, not a classical numeric "
+            "measure or outcome probability."
+        ),
+    }
 
 
 if __name__ == "__main__":

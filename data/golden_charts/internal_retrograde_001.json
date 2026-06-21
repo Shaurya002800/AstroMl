@@ -1,0 +1,40 @@
+{
+  "fixture_id": "internal_retrograde_001",
+  "verification_status": "internal_regression_only",
+  "reference_source": "Serenova V0.5 Mercury-retrograde baseline",
+  "settings": {
+    "ayanamsa": "Lahiri",
+    "node_mode": "Mean",
+    "coordinate_frame": "Geocentric sidereal"
+  },
+  "input": {
+    "birth_datetime_utc": "2024-04-05T12:00:00",
+    "latitude": 40.7128,
+    "longitude": -74.006
+  },
+  "tolerances_degrees": {
+    "ascendant": 0.01,
+    "planets": 0.01
+  },
+  "expected": {
+    "ascendant": {"longitude": 24.048966511639595, "sign": "Aries"},
+    "planets": {
+      "Sun": {"longitude": 351.994, "sign": "Pisces", "is_retrograde": false},
+      "Moon": {"longitude": 306.2896, "sign": "Aquarius", "is_retrograde": false},
+      "Mars": {"longitude": 316.3179, "sign": "Aquarius", "is_retrograde": false},
+      "Mercury": {"longitude": 2.3091, "sign": "Aries", "is_retrograde": true},
+      "Jupiter": {"longitude": 24.133, "sign": "Aries", "is_retrograde": false},
+      "Venus": {"longitude": 336.2171, "sign": "Pisces", "is_retrograde": false},
+      "Saturn": {"longitude": 319.9056, "sign": "Aquarius", "is_retrograde": false},
+      "Rahu": {"longitude": 351.6253, "sign": "Pisces", "is_retrograde": true},
+      "Ketu": {"longitude": 171.6253, "sign": "Virgo", "is_retrograde": true}
+    },
+    "extended_vargas": {
+      "D2": {"ascendant_sign": "Cancer"},
+      "D3": {"ascendant_sign": "Sagittarius"},
+      "D4": {"ascendant_sign": "Capricorn"},
+      "D12": {"ascendant_sign": "Capricorn"},
+      "D30": {"ascendant_sign": "Gemini"}
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "rules": {
+    "CORE_SIDEREAL_POSITIONS": {
+      "module": "calculations.chart",
+      "sources": ["SWISS_EPHEMERIS_PROGRAMMER"],
+      "convention": "Lahiri ayanamsa; mean node for Rahu; Ketu at 180 degrees.",
+      "validation_status": "unit_tested_needs_cross_engine_validation"
+    },
+    "WHOLE_SIGN_HOUSES": {
+      "module": "calculations.house_analysis",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "Whole-sign houses for lordships, yogas, aspects, and transit mapping.",
+      "validation_status": "unit_tested_needs_expert_review"
+    },
+    "VIMSHOTTARI_DASHA": {
+      "module": "calculations.dasha",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "365.25 days per year for date conversion.",
+      "validation_status": "unit_tested_needs_cross_engine_validation"
+    },
+    "PLANETARY_DIGNITY": {
+      "module": "calculations.dignity",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "Natural friendships; node exaltation signs are marked as debated.",
+      "validation_status": "unit_tested_needs_expert_review"
+    },
+    "COMBUSTION": {
+      "module": "calculations.planetary_conditions",
+      "sources": ["SERENOVA_CONVENTION"],
+      "convention": "Explicit configurable angular orbs by planet and motion.",
+      "validation_status": "unit_tested_needs_expert_review"
+    },
+    "PARASHARI_ASPECTS": {
+      "module": "calculations.house_analysis",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "Sign-based graha drishti; node aspects excluded.",
+      "validation_status": "unit_tested_needs_expert_review"
+    },
+    "RASHI_DRISHTI": {
+      "module": "calculations.rashi_drishti",
+      "sources": ["SERENOVA_CONVENTION"],
+      "convention": "Jaimini-style movable/fixed/dual sign aspect mapping, kept separate from Parashari graha drishti.",
+      "validation_status": "unit_tested_needs_edition_specific_expert_review"
+    },
+    "ASHTAKAVARGA": {
+      "module": "calculations.ashtakavarga",
+      "sources": ["BPHS_TRADITION"],
+      "convention": "Seven target planets and eight contributors; total validation 337.",
+      "validation_status": "unit_tested_needs_cross_engine_validation"
+    },
+    "YOGA_RULES": {
+      "module": "knowledge_base.yogas",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "Current set includes simplified rules and explicit caveats.",
+      "validation_status": "preliminary_needs_expansion_and_expert_review"
+    },
+    "TRANSIT_WINDOWS": {
+      "module": "calculations.transits",
+      "sources": ["SWISS_EPHEMERIS_PROGRAMMER", "SERENOVA_CONVENTION"],
+      "convention": "Numerical sign-boundary and longitude-speed station searches.",
+      "validation_status": "unit_tested_needs_cross_engine_validation"
+    },
+    "DOMAIN_SYNTHESIS": {
+      "module": "synthesis",
+      "sources": ["SERENOVA_SYNTHESIS"],
+      "convention": "Structural support and current activation are separate non-probability scores.",
+      "validation_status": "internal_heuristic_needs_consultant_evaluation"
+    },
+    "EXTENDED_VARGAS": {
+      "module": "calculations.extended_divisional_charts",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "D2, D3, D4, D12, and D30 working mappings; D16, D24, and D60 disabled pending validation.",
+      "validation_status": "unit_tested_needs_cross_engine_validation"
+    },
+    "BIRTH_TIME_SENSITIVITY": {
+      "module": "calculations.sensitivity",
+      "sources": ["SWISS_EPHEMERIS_PROGRAMMER", "SERENOVA_CONVENTION"],
+      "convention": "Recompute nearby birth times at plus/minus 15, 30, and 60 minutes and compare house/varga outputs.",
+      "validation_status": "unit_tested"
+    },
+    "PLANETARY_STRENGTH_COMPONENTS": {
+      "module": "calculations.planetary_strength",
+      "sources": ["BPHS_TRADITION", "SERENOVA_CONVENTION"],
+      "convention": "Transparent dignity, combustion, D1/D9 vargottama, and directional-house components; explicitly not full Shadbala.",
+      "validation_status": "internal_component_model_needs_expert_review"
+    }
+  }
+}

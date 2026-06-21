@@ -6,7 +6,10 @@ It deliberately avoids reducing a planet to an unconditional benefic/malefic
 verdict; placement, dignity, aspects, dasha, and divisional charts still matter.
 """
 
-from house_analysis import SIGN_RULERS, ZODIAC_SIGNS
+try:
+    from .house_analysis import SIGN_RULERS, ZODIAC_SIGNS
+except ImportError:
+    from house_analysis import SIGN_RULERS, ZODIAC_SIGNS
 
 
 CLASSICAL_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]

@@ -10,7 +10,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from report import generate_full_report
+try:
+    from .report import generate_full_report
+except ImportError:
+    from report import generate_full_report
 
 
 UNCERTAINTY_NOTE = (
@@ -52,6 +55,8 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
     dispositor_analysis = report.get("dispositor_analysis", {})
     transits = report.get("transits", {})
     domain_reviews = report.get("domain_reviews", {})
+    extended_vargas = report.get("extended_divisional_charts", {})
+    birth_time_sensitivity = report.get("birth_time_sensitivity", {})
 
     strong_houses = []
     attention_houses = []
@@ -150,7 +155,7 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
     )
 
     return {
-        "model_version": "0.4.0",
+        "model_version": "0.5.1",
         "method": "deterministic_jyotish_rules_plus_guarded_llm_synthesis",
         "assumptions": {
             "ayanamsa": "Lahiri",
@@ -183,6 +188,7 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             "retrograde_planets_for_review": retrograde_planets,
         },
         "aspect_review": report.get("parashari_aspects", {}),
+        "rashi_drishti_review": report.get("rashi_drishti", {}),
         "functional_role_review": functional_roles,
         "dispositor_review": {
             "final_dispositors": dispositor_analysis.get("final_dispositors", []),
@@ -206,6 +212,10 @@ def build_consultation_brief(report: dict[str, Any], time_precision: str = "exac
             "station_windows": transits.get("station_windows", {}),
         },
         "domain_reviews": domain_reviews,
+        "extended_varga_review": extended_vargas,
+        "birth_time_sensitivity": birth_time_sensitivity,
+        "planetary_strength": report.get("planetary_strength", {}),
+        "quality_checks": report.get("quality_checks", {}),
         "career_review": {
             "d10_ascendant_sign": report["d10_career_chart"]["ascendant_sign"],
             "planets_by_house": career_focus,

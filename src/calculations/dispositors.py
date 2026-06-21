@@ -2,7 +2,10 @@
 Classical sign-dispositor chains for natal planets and lunar nodes.
 """
 
-from house_analysis import SIGN_RULERS
+try:
+    from .house_analysis import SIGN_RULERS
+except ImportError:
+    from house_analysis import SIGN_RULERS
 
 
 def analyze_dispositors(chart: dict) -> dict:

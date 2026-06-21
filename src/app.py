@@ -3,12 +3,14 @@ Streamlit interface for the astrology report tool.
 Run with: streamlit run app.py
 """
 
-import sys
 import os
+import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "calculations"))
-sys.path.append(os.path.join(os.path.dirname(__file__), "knowledge_base"))
-sys.path.append(os.path.join(os.path.dirname(__file__), "interpretation"))
+SRC_DIR = os.path.dirname(__file__)
+sys.path.insert(0, SRC_DIR)
+sys.path.append(os.path.join(SRC_DIR, "calculations"))
+sys.path.append(os.path.join(SRC_DIR, "knowledge_base"))
+sys.path.append(os.path.join(SRC_DIR, "interpretation"))
 
 import streamlit as st
 from datetime import datetime, date, time
@@ -17,9 +19,16 @@ import pytz
 
 from report import generate_full_report
 from session_log import save_session, list_sessions, load_session
-from interpret import generate_interpretation
 from cities import INDIAN_CITIES, get_city_list
 from astrology_model import build_consultation_brief
+from feedback import save_feedback
+from presentation import (
+    SUPPORTED_LANGUAGES,
+    build_plain_language_report,
+    render_plain_language_markdown,
+)
+from secure_storage import SecureStorageConfigurationError
+from time_utils import local_datetime_to_utc
 
 
 st.set_page_config(page_title="Serenova Astrology Tool", page_icon="🪔", layout="centered")
@@ -27,7 +36,29 @@ st.set_page_config(page_title="Serenova Astrology Tool", page_icon="🪔", layou
 st.title("🪔 Serenova — Astrology Session Tool")
 st.caption("Internal tool · Enter client birth details to generate a chart report")
 
+language_label = st.segmented_control(
+    "Report Language",
+    list(SUPPORTED_LANGUAGES),
+    default="English",
+    key="report_language_label",
+)
+report_language = SUPPORTED_LANGUAGES[language_label or "English"]
+
 st.divider()
+
+TIME_PRECISION_OPTIONS = {
+    "exact": "Exact",
+    "within_15_min": "Approx. within 15 minutes",
+    "within_1_hour": "Approx. within 1 hour",
+    "unknown": "Unknown / needs rectification",
+}
+
+LOCAL_TIME_POLICIES = {
+    "raise": "Ask if local time is ambiguous or nonexistent",
+    "earlier": "Use earlier occurrence for repeated clock time",
+    "later": "Use later occurrence for repeated clock time",
+    "shift_forward": "Shift nonexistent clock time forward",
+}
 
 # --- Input form ---
 with st.form("birth_details"):
@@ -46,22 +77,31 @@ with st.form("birth_details"):
     with col2:
         birth_time = st.time_input("Time of Birth", value=time(12, 0))
 
-    time_precision = st.selectbox(
+    time_precision_label = st.selectbox(
         "Birth Time Accuracy",
-        [
-            ("exact", "Exact"),
-            ("within_15_min", "Approx. within 15 minutes"),
-            ("within_1_hour", "Approx. within 1 hour"),
-            ("unknown", "Unknown / needs rectification"),
-        ],
-        format_func=lambda option: option[1],
-    )[0]
+        list(TIME_PRECISION_OPTIONS.values()),
+    )
+    time_precision = next(
+        key
+        for key, label in TIME_PRECISION_OPTIONS.items()
+        if label == time_precision_label
+    )
 
     analysis_date = st.date_input(
         "Analysis Date",
         value=date.today(),
         min_value=date(1920, 1, 1),
         max_value=date(2100, 12, 31),
+    )
+
+    local_time_policy_label = st.selectbox(
+        "Clock-Change Handling",
+        list(LOCAL_TIME_POLICIES.values()),
+    )
+    local_time_policy = next(
+        key
+        for key, label in LOCAL_TIME_POLICIES.items()
+        if label == local_time_policy_label
     )
 
     st.markdown("**Place of Birth**")
@@ -93,14 +133,26 @@ if submitted:
         if not tz_name:
             st.error("Could not detect timezone for this location. Please check latitude and longitude.")
             st.stop()
-        local_tz = pytz.timezone(tz_name)
         local_dt = datetime.combine(birth_date, birth_time)
-        localized_dt = local_tz.localize(local_dt)
-        utc_dt = localized_dt.astimezone(pytz.utc).replace(tzinfo=None)
-        analysis_local_dt = local_tz.localize(
-            datetime.combine(analysis_date, time(12, 0))
+        try:
+            utc_dt = local_datetime_to_utc(
+                local_dt,
+                tz_name,
+                policy=local_time_policy,
+            )
+        except (pytz.AmbiguousTimeError, pytz.NonExistentTimeError) as error:
+            st.error(
+                "The entered local birth time is ambiguous or did not exist "
+                "because the clock changed. Select an appropriate "
+                "Clock-Change Handling option."
+            )
+            st.caption(str(error))
+            st.stop()
+        analysis_utc_dt = local_datetime_to_utc(
+            datetime.combine(analysis_date, time(12, 0)),
+            tz_name,
+            policy="shift_forward",
         )
-        analysis_utc_dt = analysis_local_dt.astimezone(pytz.utc).replace(tzinfo=None)
 
         report = generate_full_report(
             utc_dt,
@@ -113,11 +165,109 @@ if submitted:
             "report": report,
             "consultation_brief": consultation_brief,
         }
+        birth_details = {
+            "date": str(birth_date),
+            "time": str(birth_time),
+            "city": selected_city,
+            "latitude": latitude,
+            "longitude": longitude,
+            "utc_datetime": str(utc_dt),
+            "time_precision": time_precision,
+            "analysis_date": str(analysis_date),
+            "analysis_datetime_utc": str(analysis_utc_dt),
+            "timezone": tz_name,
+            "local_time_policy": local_time_policy,
+        }
+        st.session_state["latest_model_payload"] = model_payload
+        st.session_state["latest_client_name"] = name
+        st.session_state["latest_birth_details"] = birth_details
+
+        saved_summary = build_plain_language_report(
+            model_payload,
+            report_language,
+        )
+        saved_markdown = render_plain_language_markdown(saved_summary)
+        try:
+            save_session(
+                name,
+                birth_details,
+                model_payload,
+                saved_markdown,
+            )
+            st.session_state["latest_save_status"] = "saved"
+        except SecureStorageConfigurationError as error:
+            st.session_state["latest_save_status"] = str(error)
 
     st.success("Chart calculated successfully")
 
-    # --- Display raw computed data ---
-    with st.expander("📊 View Raw Computed Data (Ascendant, Planets, Dasha, etc.)"):
+
+if "latest_model_payload" in st.session_state:
+    model_payload = st.session_state["latest_model_payload"]
+    report = model_payload["report"]
+    consultation_brief = model_payload["consultation_brief"]
+    summary = build_plain_language_report(
+        model_payload,
+        report_language,
+    )
+    summary_markdown = render_plain_language_markdown(summary)
+    labels = summary["labels"]
+
+    st.divider()
+    st.header(summary["title"])
+    st.caption(summary["subtitle"])
+
+    st.subheader(labels["overview"])
+    st.info(summary["overview"])
+
+    st.subheader(labels["current_phase"])
+    with st.container(border=True):
+        st.markdown(f"**{summary['current_phase']['title']}**")
+        st.write(summary["current_phase"]["summary"])
+        st.caption(summary["current_phase"]["dates"])
+
+    st.subheader(labels["priority_areas"])
+    for area in summary["priority_areas"]:
+        with st.container(border=True):
+            st.markdown(f"#### {area['title']}")
+            st.markdown(f"**{area['status']}**")
+            st.write(area["summary"])
+            st.markdown(f"**{labels['focus']}:** {area['focus']}")
+            st.caption(f"{labels['attention']}: {area['attention']}")
+
+    col_strengths, col_care = st.columns(2)
+    with col_strengths:
+        st.subheader(labels["strengths"])
+        for item in summary["strengths"]:
+            st.markdown(f"- {item}")
+    with col_care:
+        st.subheader(labels["care"])
+        for item in summary["care"]:
+            st.markdown(f"- {item}")
+
+    st.subheader(labels["reliability"])
+    with st.container(border=True):
+        st.markdown(f"**{summary['reliability']['level']}**")
+        st.write(summary["reliability"]["text"])
+
+    st.warning(summary["disclaimer"])
+    st.download_button(
+        labels["download"],
+        summary_markdown,
+        file_name=f"serenova-summary-{report_language}.md",
+        mime="text/markdown",
+        icon=":material/download:",
+    )
+
+    save_status = st.session_state.get("latest_save_status")
+    if save_status == "saved":
+        st.caption("Session saved securely")
+    elif save_status:
+        st.warning(f"Session was not saved: {save_status}")
+
+    with st.expander(labels["technical"]):
+        st.subheader("Consultant Brief")
+        st.json(consultation_brief)
+
         st.subheader("Ascendant")
         st.json(report["ascendant"])
 
@@ -133,6 +283,9 @@ if submitted:
         st.subheader("Parashari Aspects")
         st.json(report["parashari_aspects"])
 
+        st.subheader("Rashi Drishti")
+        st.json(report["rashi_drishti"])
+
         st.subheader("Functional Planetary Roles")
         st.json(report["functional_roles"])
 
@@ -142,51 +295,17 @@ if submitted:
         st.subheader("Transits for Analysis Date")
         st.json(report["transits"])
 
-        st.subheader("Domain Reviews")
-        st.json(report["domain_reviews"])
+        st.subheader("Extended Divisional Charts")
+        st.json(report["extended_divisional_charts"])
 
-        st.subheader("Ashtakavarga (House Strengths)")
-        st.json(report["ashtakavarga"]["sarva_by_house"])
+        st.subheader("Birth-Time Sensitivity")
+        st.json(report["birth_time_sensitivity"])
 
-        st.subheader("Detected Yogas")
-        if report["yogas"]:
-            st.json(report["yogas"])
-        else:
-            st.write("No yogas detected from current rule set.")
+        st.subheader("Planetary Strength Components")
+        st.json(report["planetary_strength"])
 
-        st.subheader("D10 Career Chart")
-        st.json(report["d10_career_chart"])
-
-    with st.expander("🧭 Consultant Brief (Deterministic Model Output)", expanded=True):
-        st.json(consultation_brief)
-
-    # --- LLM Interpretation ---
-    st.divider()
-    st.subheader("📝 Session Interpretation")
-
-    with st.spinner("Generating interpretation..."):
-        try:
-            interpretation = generate_interpretation(model_payload)
-            st.markdown(interpretation)
-
-            # Save session
-            birth_details = {
-                "date": str(birth_date),
-                "time": str(birth_time),
-                "city": selected_city,
-                "latitude": latitude,
-                "longitude": longitude,
-                "utc_datetime": str(utc_dt),
-                "time_precision": time_precision,
-                "analysis_date": str(analysis_date),
-                "analysis_datetime_utc": str(analysis_utc_dt),
-            }
-            saved_path = save_session(name, birth_details, model_payload, interpretation)
-            st.caption("✅ Session saved")
-
-        except Exception as e:
-            st.error(f"Could not generate interpretation: {e}")
-            st.info("Raw computed data above is still available for manual review.")
+        st.subheader("Sources and Validation Status")
+        st.json(report["provenance"])
 
 st.divider()
 st.subheader("📁 Past Sessions")
@@ -195,7 +314,8 @@ sessions = list_sessions()
 
 if sessions:
     session_labels = [
-        f"{s['timestamp'][:16].replace('T', ' ')} — {s['client_name'] or 'Unnamed'}"
+        f"{s['timestamp'][:16].replace('T', ' ')} — "
+        f"{s['client_name'] or s.get('client_reference', 'Unnamed')}"
         for s in sessions
     ]
     selected_idx = st.selectbox("Select a past session to view", range(len(sessions)),
@@ -207,5 +327,38 @@ if sessions:
         st.markdown(session_data["interpretation"])
         with st.expander("Raw report data"):
             st.json(session_data["report"])
+
+    st.markdown("### Consultant Feedback")
+    feedback_rating = st.selectbox(
+        "Usefulness",
+        ["useful", "mixed", "not_useful"],
+    )
+    feedback_tags = st.multiselect(
+        "Tags",
+        [
+            "accurate_calculation",
+            "useful_question",
+            "too_generic",
+            "false_positive",
+            "missing_context",
+            "overstated",
+            "timing_mismatch",
+        ],
+    )
+    feedback_note = st.text_area(
+        "Optional note",
+        help=(
+            "Notes are not stored unless SERENOVA_STORE_FEEDBACK_NOTES=true. "
+            "Avoid client-identifying information."
+        ),
+    )
+    if st.button("Save Feedback"):
+        save_feedback(
+            sessions[selected_idx]["filename"],
+            feedback_rating,
+            feedback_tags,
+            feedback_note,
+        )
+        st.success("Feedback saved")
 else:
     st.caption("No past sessions saved yet.")

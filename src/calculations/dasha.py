@@ -52,7 +52,8 @@ def years_to_timedelta(years: float) -> timedelta:
 def compute_mahadasha_timeline(birth_datetime, moon_longitude: float):
     """
     Return a full sequence of mahadasha periods with start/end dates,
-    starting from birth and covering 120 years.
+    including the period active at birth and covering at least 120 years
+    after birth.
     """
     starting_lord, years_elapsed = get_dasha_elapsed_at_birth(moon_longitude)
 
@@ -72,9 +73,11 @@ def compute_mahadasha_timeline(birth_datetime, moon_longitude: float):
     })
     current_start = current_end
 
-    # Subsequent full dashas, cycling through sequence
-    for i in range(1, 9):
-        lord = DASHA_SEQUENCE[(start_index + i) % 9]
+    # Subsequent full dashas, cycling until 120 post-birth years are covered.
+    coverage_end = birth_datetime + years_to_timedelta(TOTAL_YEARS)
+    sequence_offset = 1
+    while current_start < coverage_end:
+        lord = DASHA_SEQUENCE[(start_index + sequence_offset) % 9]
         full_years = DASHA_YEARS[lord]
         current_end = current_start + years_to_timedelta(full_years)
         timeline.append({
@@ -85,6 +88,7 @@ def compute_mahadasha_timeline(birth_datetime, moon_longitude: float):
             "birth_occurs_within_period": False,
         })
         current_start = current_end
+        sequence_offset += 1
 
     return timeline
 

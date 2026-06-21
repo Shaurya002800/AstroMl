@@ -7,7 +7,10 @@ Support and activation are deliberately separate:
 Neither is an event-probability score.
 """
 
-from knowledge_base.domain_definitions import DOMAIN_DEFINITIONS
+try:
+    from .knowledge_base.domain_definitions import DOMAIN_DEFINITIONS
+except ImportError:
+    from knowledge_base.domain_definitions import DOMAIN_DEFINITIONS
 
 
 STRONG_DIGNITIES = {"Exalted", "Own Sign (Swakshetra)"}

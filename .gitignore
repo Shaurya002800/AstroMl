@@ -12,5 +12,9 @@ venv/
 
 data/sessions/*.json
 !data/sessions/.gitkeep
+data/audit/*.jsonl
+!data/audit/.gitkeep
+data/feedback/*.jsonl
+!data/feedback/.gitkeep
 
 .DS_Store

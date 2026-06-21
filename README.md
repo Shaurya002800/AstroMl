@@ -10,7 +10,8 @@ This is not the public website. The intended user is the consultant during a liv
 2. Swiss Ephemeris computes sidereal planetary positions using Lahiri ayanamsa.
 3. Deterministic modules calculate chart features: D1, D9, D10, D7, Vimshottari dasha through Pratyantar, dignity, motion, combustion, whole-sign house lordships, functional roles, dispositors, Parashari aspects, query-date transits and timing windows, Ashtakavarga, selected yogas, and bounded domain reviews.
 4. `astrology_model.py` converts computed facts into a consultation brief with caveats, confidence notes, and suggested follow-up questions.
-5. The LLM layer translates only the structured facts into natural language for the consultant.
+5. `presentation.py` turns the same facts into a conclusion-first report in English, Hindi, or Hinglish for non-expert readers.
+6. The guarded LLM layer remains optional for reviewed consultant synthesis; the default user-facing report is deterministic.
 
 ## Run Locally
 
@@ -20,6 +21,47 @@ streamlit run src/app.py
 ```
 
 Set `GROQ_API_KEY` in your environment before generating LLM interpretations.
+
+For the authenticated internal API:
+
+```bash
+export SERENOVA_API_TOKEN="replace-with-a-secret"
+export SERENOVA_ADMIN_TOKEN="replace-with-a-different-secret"
+uvicorn src.api:app --host 127.0.0.1 --port 8000
+```
+
+Generate and configure a Fernet key before saving sessions:
+
+```bash
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+export SERENOVA_ENCRYPTION_KEY="generated-key"
+```
+
+Raw client names are not stored by default. Set
+`SERENOVA_STORE_CLIENT_NAME=true` only when encrypted storage is active. Set
+`SERENOVA_PSEUDONYM_KEY` for stable pseudonymous references and
+`SERENOVA_SESSION_RETENTION_DAYS` for automatic local retention cleanup.
+`SERENOVA_SESSION_DIR` can point session storage at a dedicated encrypted
+volume or an isolated test directory.
+
+Plaintext session storage is denied by default. It can be enabled only for
+deliberate local development with `SERENOVA_ALLOW_PLAINTEXT_SESSIONS=true`.
+
+Legacy plaintext sessions can be encrypted after configuring the key:
+
+```bash
+python3 scripts/migrate_legacy_sessions.py
+python3 scripts/migrate_legacy_sessions.py --delete-plaintext
+```
+
+The first command preserves plaintext sources for review. The second removes
+each plaintext file only after its encrypted replacement is written.
+
+Production status remains false until the independent fixture target is met and
+review evidence is approved through `SERENOVA_EXPERT_REVIEW_APPROVED`,
+`SERENOVA_PILOT_APPROVED`, `SERENOVA_PRIVACY_REVIEW_APPROVED`, and
+`SERENOVA_BACKUP_DRILL_COMPLETED`. Set these only after the corresponding
+signed review or drill artifact exists.
 
 ## Design Principle
 
@@ -37,10 +79,19 @@ Astrology should be presented as interpretive guidance, not guaranteed predictio
 - Functional roles are ownership-based tendencies, not unconditional benefic/malefic verdicts.
 - Transits are mapped from natal Ascendant and Moon and must be combined with natal and dasha evidence.
 - Domain support and activation scores summarize evidence; they are not outcome probabilities.
+- Every major rule family exposes source, convention, and validation-status metadata.
+- Generated interpretations are rejected if deterministic safety checks detect absolute, fear-based, medical, or financial directives.
+- A deterministic interpretation fallback remains available if the external LLM fails or is rejected.
+- Ambiguous and nonexistent daylight-saving clock times require an explicit conversion policy.
+- The main result hides scores and technical chart mechanics by default, shows practical conclusions first, and keeps expert evidence in a collapsed panel.
+- English, Hindi, and Hinglish outputs are generated from the same structured facts and preserve the same priority order.
 
 ## Development Checks
 
 ```bash
 python3 -m unittest discover -s tests
 python3 src/report.py
+python3 scripts/validate_references.py
+python3 scripts/evaluate_model_outputs.py
+python3 scripts/summarize_feedback.py
 ```

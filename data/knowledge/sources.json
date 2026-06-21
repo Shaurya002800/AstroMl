@@ -1,0 +1,32 @@
+{
+  "sources": {
+    "SWISS_EPHEMERIS_PROGRAMMER": {
+      "title": "Swiss Ephemeris Programmer's Manual",
+      "type": "astronomical_software_documentation",
+      "url": "https://www.astro.com/swisseph/swephprg.htm",
+      "publisher": "Astrodienst",
+      "notes": "Primary technical reference for ephemeris calculations and flags."
+    },
+    "BPHS_TRADITION": {
+      "title": "Brihat Parashara Hora Shastra",
+      "type": "traditional_text_family",
+      "url": "https://sa.wikisource.org/wiki/%E0%A4%AC%E0%A5%83%E0%A4%B9%E0%A4%A4%E0%A5%8D%E0%A4%AA%E0%A4%BE%E0%A4%B0%E0%A4%BE%E0%A4%B6%E0%A4%B0%E0%A4%B9%E0%A5%8B%E0%A4%B0%E0%A4%BE%E0%A4%B6%E0%A4%BE%E0%A4%B8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A5%8D",
+      "publisher": "Sanskrit Wikisource",
+      "notes": "Traditional reference family. Manuscripts and modern editions differ; chapter references require edition-specific review."
+    },
+    "SERENOVA_CONVENTION": {
+      "title": "Serenova Explicit Working Conventions",
+      "type": "internal_convention",
+      "url": null,
+      "publisher": "Serenova",
+      "notes": "Used where traditions differ. Every such rule must expose its assumptions and remain expert-reviewable."
+    },
+    "SERENOVA_SYNTHESIS": {
+      "title": "Serenova Evidence Synthesis Heuristics",
+      "type": "internal_heuristic",
+      "url": null,
+      "publisher": "Serenova",
+      "notes": "Support and activation summaries are not classical sutras, probabilities, or guaranteed predictions."
+    }
+  }
+}

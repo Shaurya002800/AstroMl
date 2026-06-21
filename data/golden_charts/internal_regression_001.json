@@ -1,0 +1,36 @@
+{
+  "fixture_id": "internal_regression_001",
+  "verification_status": "internal_regression_only",
+  "reference_source": "Serenova V0.4 calculation baseline",
+  "settings": {
+    "ayanamsa": "Lahiri",
+    "node_mode": "Mean",
+    "coordinate_frame": "Geocentric sidereal"
+  },
+  "input": {
+    "birth_datetime_utc": "1990-08-15T09:00:00",
+    "latitude": 28.6139,
+    "longitude": 77.209
+  },
+  "tolerances_degrees": {
+    "ascendant": 0.01,
+    "planets": 0.01
+  },
+  "expected": {
+    "ascendant": {
+      "longitude": 230.29576956410943,
+      "sign": "Scorpio"
+    },
+    "planets": {
+      "Sun": {"longitude": 118.5551, "sign": "Cancer"},
+      "Moon": {"longitude": 51.3071, "sign": "Taurus"},
+      "Mars": {"longitude": 27.583, "sign": "Aries"},
+      "Mercury": {"longitude": 145.5746, "sign": "Leo"},
+      "Jupiter": {"longitude": 95.6424, "sign": "Cancer"},
+      "Venus": {"longitude": 98.0461, "sign": "Cancer"},
+      "Saturn": {"longitude": 266.1385, "sign": "Sagittarius"},
+      "Rahu": {"longitude": 282.7447, "sign": "Capricorn"},
+      "Ketu": {"longitude": 102.7447, "sign": "Cancer"}
+    }
+  }
+}

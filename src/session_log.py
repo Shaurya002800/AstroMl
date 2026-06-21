@@ -5,9 +5,20 @@ for later reference.
 
 import os
 import json
-from datetime import datetime
+import hashlib
+import hmac
+import uuid
+from datetime import datetime, timedelta
 
-LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "sessions")
+try:
+    from .secure_storage import decode_record, encode_record
+except ImportError:
+    from secure_storage import decode_record, encode_record
+
+LOG_DIR = os.getenv(
+    "SERENOVA_SESSION_DIR",
+    os.path.join(os.path.dirname(__file__), "..", "data", "sessions"),
+)
 
 
 def ensure_log_dir():
@@ -30,20 +41,31 @@ def save_session(client_name: str, birth_details: dict, report: dict, interpreta
     ensure_log_dir()
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_name = "".join(c if c.isalnum() else "_" for c in (client_name or "client")).strip("_")
-    filename = f"{timestamp}_{safe_name or 'client'}.json"
-    filepath = os.path.join(LOG_DIR, filename)
+    client_reference = _client_reference(client_name)
+    store_client_name = os.getenv(
+        "SERENOVA_STORE_CLIENT_NAME", "false"
+    ).lower() == "true"
 
     session_record = {
         "session_timestamp": datetime.now().isoformat(),
-        "client_name": client_name,
+        "client_name": client_name if store_client_name else "",
+        "client_reference": client_reference,
+        "privacy": {
+            "raw_name_stored": store_client_name,
+            "encryption_at_rest": bool(
+                os.getenv("SERENOVA_ENCRYPTION_KEY")
+            ),
+        },
         "birth_details": birth_details,
         "report": report,
         "interpretation": interpretation,
     }
 
-    with open(filepath, "w") as f:
-        json.dump(session_record, f, indent=2, default=str)
+    payload, extension = encode_record(session_record)
+    filename = f"{timestamp}_{client_reference}{extension}"
+    filepath = os.path.join(LOG_DIR, filename)
+    with open(filepath, "wb") as file:
+        file.write(payload)
 
     return filepath
 
@@ -51,20 +73,22 @@ def save_session(client_name: str, birth_details: dict, report: dict, interpreta
 def list_sessions() -> list:
     """Return a list of (filename, client_name, timestamp) for all saved sessions, newest first."""
     ensure_log_dir()
+    purge_expired_sessions()
     sessions = []
 
     for fname in os.listdir(LOG_DIR):
-        if fname.endswith(".json"):
+        if fname.endswith(".json") or fname.endswith(".json.enc"):
             filepath = os.path.join(LOG_DIR, fname)
             try:
-                with open(filepath, "r") as f:
-                    data = json.load(f)
+                with open(filepath, "rb") as file:
+                    data = decode_record(file.read(), fname)
                 sessions.append({
                     "filename": fname,
                     "client_name": data.get("client_name", "Unknown"),
+                    "client_reference": data.get("client_reference", "legacy"),
                     "timestamp": data.get("session_timestamp", ""),
                 })
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, RuntimeError):
                 continue
 
     sessions.sort(key=lambda s: s["timestamp"], reverse=True)
@@ -73,6 +97,60 @@ def list_sessions() -> list:
 
 def load_session(filename: str) -> dict:
     """Load a full session record by filename."""
-    filepath = os.path.join(LOG_DIR, filename)
-    with open(filepath, "r") as f:
-        return json.load(f)
+    filepath = _safe_session_path(filename)
+    with open(filepath, "rb") as file:
+        return decode_record(file.read(), filename)
+
+
+def delete_session(filename: str) -> None:
+    """Delete one local session record."""
+    os.remove(_safe_session_path(filename))
+
+
+def purge_expired_sessions() -> int:
+    """Delete local session files older than configured retention days."""
+    raw_days = os.getenv("SERENOVA_SESSION_RETENTION_DAYS")
+    if not raw_days:
+        return 0
+    retention_days = int(raw_days)
+    if retention_days < 1:
+        raise ValueError("SERENOVA_SESSION_RETENTION_DAYS must be at least 1.")
+
+    cutoff = datetime.now() - timedelta(days=retention_days)
+    removed = 0
+    for filename in os.listdir(LOG_DIR):
+        if not (
+            filename.endswith(".json")
+            or filename.endswith(".json.enc")
+        ):
+            continue
+        path = os.path.join(LOG_DIR, filename)
+        modified = datetime.fromtimestamp(os.path.getmtime(path))
+        if modified < cutoff:
+            os.remove(path)
+            removed += 1
+    return removed
+
+
+def _client_reference(client_name: str) -> str:
+    key = os.getenv("SERENOVA_PSEUDONYM_KEY")
+    normalized = (client_name or "").strip().lower()
+    if key and normalized:
+        digest = hmac.new(
+            key.encode("utf-8"),
+            normalized.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        return digest[:12]
+    return uuid.uuid4().hex[:12]
+
+
+def _safe_session_path(filename: str) -> str:
+    if os.path.basename(filename) != filename:
+        raise ValueError("Invalid session filename.")
+    if not (
+        filename.endswith(".json")
+        or filename.endswith(".json.enc")
+    ):
+        raise ValueError("Unsupported session filename.")
+    return os.path.join(LOG_DIR, filename)

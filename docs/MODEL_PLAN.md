@@ -1,5 +1,8 @@
 # Astrology Model Plan
 
+> Historical planning document. The authoritative roadmap and release gates are
+> maintained in [MASTER_ROADMAP.md](MASTER_ROADMAP.md).
+
 ## Goal
 
 Build a private, consultant-facing astrology assistant that helps during live sessions. It should produce deep, structured, auditable Jyotish analysis while leaving final judgment with the human consultant.
@@ -38,14 +41,16 @@ The model should instead predict in the astrology-specific sense: it should iden
 - [x] Add retrograde/combustion checks for all relevant planets.
 - [x] Add Parashari graha drishti.
 - [x] Add whole-sign house lordship placement.
-- [ ] Add sign-based rashi drishti as a separate mode.
+- [x] Add sign-based rashi drishti as a separate mode.
 - [x] Add ownership-based functional tendencies and Yogakaraka flags.
 - [x] Add dispositor chains, cycles, and final-dispositor detection.
-- Add D2, D3, D4, D12, D16, D24, D30, D60 only after formula validation.
+- [x] Add D2, D3, D4, D12, and D30 after formula validation.
+- [ ] Add D16, D24, and D60 after convention and cross-engine validation.
 - [x] Add query-date transit positions and natal-house contacts.
-- [ ] Add transit ingress/egress date windows and station windows.
-- Add source references per rule in machine-readable JSON/YAML.
-- Add golden-chart test fixtures verified against trusted astrology software.
+- [x] Add transit ingress/egress date windows and station windows.
+- [x] Add source references per rule in machine-readable JSON.
+- [x] Add internal golden-chart regression fixtures.
+- [ ] Add fixtures verified against trusted astrology software.
 
 ## V3 Scope
 
@@ -58,25 +63,28 @@ The model should instead predict in the astrology-specific sense: it should iden
 
 ### V0.5 Classical Depth
 
-- [ ] Expand yoga rules and implement cancellation/strength conditions.
-- [ ] Add D2, D3, D4, D12, D16, D24, D30, and D60 after formula validation.
-- [ ] Add Shadbala and more complete planetary-strength analysis.
-- [ ] Add birth-time rectification workflow and sensitivity reports.
+- [x] Expand yoga rules with initial cancellation/strength evidence.
+- [x] Add D2, D3, D4, D12, and D30.
+- [ ] Add D16, D24, and D60 after independent validation.
+- [x] Add transparent planetary-strength components.
+- [ ] Add full Shadbala after source and cross-engine validation.
+- [x] Add birth-time sensitivity reports.
+- [ ] Add expert-led birth-time rectification workflow.
 
 ### V0.6 Validation and Sources
 
-- [ ] Machine-readable source registry per rule and convention.
+- [x] Machine-readable source registry per rule and convention.
 - [ ] Golden-chart fixtures compared with trusted Jyotish software.
 - [ ] Independent expert review of formulas and interpretation rules.
-- [ ] Hallucination, absolute-claim, source-coverage, and regression evaluation.
+- [x] Hallucination, absolute-claim, source-coverage, and regression evaluation foundation.
 
 ### V0.7 Product and Learning Loop
 
 - [ ] Retrieval-augmented explanation from curated classical/traditional notes.
 - [ ] Consultant session observations and follow-up notes.
-- [ ] Feedback scoring for useful/not-useful interpretations.
-- [ ] Authenticated API separate from the website.
-- [ ] Encryption, retention controls, audit logs, and client-data deletion.
+- [x] Feedback scoring for useful/not-useful interpretations.
+- [x] Authenticated API separate from the website.
+- [x] Encryption, retention controls, audit logs, export, and client-data deletion.
 
 ## Safety Rules
 

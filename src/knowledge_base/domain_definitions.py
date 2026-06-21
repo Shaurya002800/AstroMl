@@ -39,7 +39,7 @@ DOMAIN_DEFINITIONS = {
         "label": "Education and Learning",
         "houses": [2, 4, 5, 9],
         "planets": ["Moon", "Mercury", "Jupiter"],
-        "divisional_chart": "D24 (not implemented)",
+        "divisional_chart": "D24 (disabled pending validation)",
         "consultant_prompt": (
             "Ask about the type of study, examination timeline, consistency, "
             "mentorship, and practical obstacles."

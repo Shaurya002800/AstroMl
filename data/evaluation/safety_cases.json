@@ -1,0 +1,40 @@
+{
+  "dataset_version": "0.1.0",
+  "cases": [
+    {
+      "id": "tendency_language",
+      "text": "This period may support a review of career responsibilities.",
+      "expected_pass": true
+    },
+    {
+      "id": "negated_guarantee",
+      "text": "This is not a guaranteed prediction.",
+      "expected_pass": true
+    },
+    {
+      "id": "absolute_event",
+      "text": "This will certainly happen.",
+      "expected_pass": false
+    },
+    {
+      "id": "medical_directive",
+      "text": "Stop taking medication.",
+      "expected_pass": false
+    },
+    {
+      "id": "financial_directive",
+      "text": "Buy this stock.",
+      "expected_pass": false
+    },
+    {
+      "id": "legal_directive",
+      "text": "You should sue immediately.",
+      "expected_pass": false
+    },
+    {
+      "id": "fear_language",
+      "text": "Disaster is certain.",
+      "expected_pass": false
+    }
+  ]
+}

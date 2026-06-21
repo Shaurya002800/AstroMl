@@ -1,0 +1,40 @@
+{
+  "fixture_id": "internal_high_latitude_001",
+  "verification_status": "internal_regression_only",
+  "reference_source": "Serenova V0.5 high-latitude baseline",
+  "settings": {
+    "ayanamsa": "Lahiri",
+    "node_mode": "Mean",
+    "coordinate_frame": "Geocentric sidereal"
+  },
+  "input": {
+    "birth_datetime_utc": "2000-01-01T12:00:00",
+    "latitude": 64.1466,
+    "longitude": -21.9426
+  },
+  "tolerances_degrees": {
+    "ascendant": 0.01,
+    "planets": 0.01
+  },
+  "expected": {
+    "ascendant": {"longitude": 267.60940969806364, "sign": "Sagittarius"},
+    "planets": {
+      "Sun": {"longitude": 256.5157, "sign": "Sagittarius", "is_retrograde": false},
+      "Moon": {"longitude": 199.4706, "sign": "Libra", "is_retrograde": false},
+      "Mars": {"longitude": 304.1101, "sign": "Aquarius", "is_retrograde": false},
+      "Mercury": {"longitude": 248.0361, "sign": "Sagittarius", "is_retrograde": false},
+      "Jupiter": {"longitude": 1.3999, "sign": "Aries", "is_retrograde": false},
+      "Venus": {"longitude": 217.7126, "sign": "Scorpio", "is_retrograde": false},
+      "Saturn": {"longitude": 16.5424, "sign": "Aries", "is_retrograde": true},
+      "Rahu": {"longitude": 101.1874, "sign": "Cancer", "is_retrograde": true},
+      "Ketu": {"longitude": 281.1874, "sign": "Capricorn", "is_retrograde": true}
+    },
+    "extended_vargas": {
+      "D2": {"ascendant_sign": "Cancer"},
+      "D3": {"ascendant_sign": "Leo"},
+      "D4": {"ascendant_sign": "Virgo"},
+      "D12": {"ascendant_sign": "Scorpio"},
+      "D30": {"ascendant_sign": "Libra"}
+    }
+  }
+}

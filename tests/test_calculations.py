@@ -1,7 +1,7 @@
 import os
 import sys
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -18,15 +18,27 @@ from dasha import (
 )
 from dignity import annotate_chart_with_dignity_and_navamsa
 from dispositors import analyze_dispositors
+from extended_divisional_charts import (
+    build_extended_divisional_charts,
+    get_chaturthamsa_sign,
+    get_drekkana_sign,
+    get_dwadashamsa_sign,
+    get_hora_sign,
+    get_trimsamsa_sign,
+)
 from functional_roles import classify_functional_roles
 from house_analysis import analyze_house_lordships, compute_parashari_aspects
 from planetary_conditions import annotate_planetary_conditions, angular_separation
 from report import generate_full_report
+from rashi_drishti import compute_rashi_drishti, signs_aspected_by
+from sensitivity import compute_birth_time_sensitivity
+from planetary_strength import compute_planetary_strength_profile
 from transits import (
     compute_sign_window,
     compute_station_window,
     compute_transit_report,
 )
+from yogas import check_kemadruma_yoga, detect_all_yogas
 
 
 class CalculationTests(unittest.TestCase):
@@ -39,6 +51,7 @@ class CalculationTests(unittest.TestCase):
         report = generate_full_report(self.birth_dt_utc, self.lat, self.lon)
 
         self.assertIn("ascendant", report)
+        self.assertIn("release", report)
         self.assertIn("planets", report)
         self.assertIn("current_dasha", report)
         self.assertIn("ashtakavarga", report)
@@ -48,6 +61,10 @@ class CalculationTests(unittest.TestCase):
         self.assertIn("dispositor_analysis", report)
         self.assertIn("transits", report)
         self.assertIn("domain_reviews", report)
+        self.assertIn("extended_divisional_charts", report)
+        self.assertIn("birth_time_sensitivity", report)
+        self.assertIn("planetary_strength", report)
+        self.assertIn("rashi_drishti", report)
 
     def test_sarvashtakavarga_total_is_classical_337(self):
         chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
@@ -122,6 +139,28 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(antars[-1]["end"], maha["end"])
         self.assertEqual(pratyantars[0]["start"], antars[0]["start"])
         self.assertEqual(pratyantars[-1]["end"], antars[0]["end"])
+
+    def test_mahadasha_timeline_covers_120_years_after_birth(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        timeline = compute_mahadasha_timeline(
+            self.birth_dt_utc,
+            chart["planets"]["Moon"]["longitude"],
+        )
+        required_end = self.birth_dt_utc + timedelta(days=120 * 365.25)
+
+        self.assertGreaterEqual(timeline[-1]["end"], required_end)
+        self.assertGreaterEqual(len(timeline), 10)
+
+    def test_current_dasha_supports_late_life_query(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        result = get_current_dasha(
+            self.birth_dt_utc,
+            chart["planets"]["Moon"]["longitude"],
+            datetime(2109, 8, 15, 9, 0),
+        )
+
+        self.assertNotIn("error", result)
+        self.assertIsNotNone(result["mahadasha"])
 
     def test_current_dasha_includes_pratyantar(self):
         chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
@@ -262,6 +301,156 @@ class CalculationTests(unittest.TestCase):
             self.assertIsInstance(review["support_score"], int)
             self.assertIsInstance(review["activation_score"], int)
             self.assertIn("not an event prediction", review["caveat"])
+
+    def test_hora_uses_odd_even_solar_lunar_order(self):
+        self.assertEqual(get_hora_sign(10.0), "Leo")
+        self.assertEqual(get_hora_sign(20.0), "Cancer")
+        self.assertEqual(get_hora_sign(40.0), "Cancer")
+        self.assertEqual(get_hora_sign(50.0), "Leo")
+
+    def test_drekkana_uses_first_fifth_and_ninth_signs(self):
+        self.assertEqual(get_drekkana_sign(5.0), "Aries")
+        self.assertEqual(get_drekkana_sign(15.0), "Leo")
+        self.assertEqual(get_drekkana_sign(25.0), "Sagittarius")
+
+    def test_chaturthamsa_and_dwadashamsa_progressions(self):
+        self.assertEqual(get_chaturthamsa_sign(30.0), "Taurus")
+        self.assertEqual(get_chaturthamsa_sign(38.0), "Leo")
+        self.assertEqual(get_dwadashamsa_sign(3.0), "Taurus")
+
+    def test_trimsamsa_nonuniform_odd_even_mappings(self):
+        self.assertEqual(get_trimsamsa_sign(4.0), "Aries")
+        self.assertEqual(get_trimsamsa_sign(6.0), "Aquarius")
+        self.assertEqual(get_trimsamsa_sign(33.0), "Taurus")
+        self.assertEqual(get_trimsamsa_sign(36.0), "Virgo")
+
+    def test_extended_vargas_expose_boundary_sensitivity_and_disabled_charts(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        vargas = build_extended_divisional_charts(chart)
+
+        self.assertEqual(
+            set(vargas["implemented"]),
+            {"D2", "D3", "D4", "D12", "D30"},
+        )
+        self.assertEqual(
+            set(vargas["disabled_pending_validation"]),
+            {"D16", "D24", "D60"},
+        )
+        for varga in vargas["implemented"].values():
+            self.assertIn("ascendant_boundary_sensitivity", varga)
+
+    def test_detected_yogas_include_planets_and_strength_evidence(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        chart = annotate_chart_with_dignity_and_navamsa(chart)
+        chart = annotate_planetary_conditions(chart)
+        yogas = detect_all_yogas(
+            chart,
+            chart["ascendant"]["sign"],
+            [
+                "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                "Libra", "Scorpio", "Sagittarius", "Capricorn",
+                "Aquarius", "Pisces",
+            ],
+        )
+
+        for yoga in yogas:
+            self.assertIn("involved_planets", yoga)
+            self.assertIn("simplified", yoga)
+            self.assertIn("strength_assessment", yoga)
+            self.assertIn("label", yoga["strength_assessment"])
+
+    def test_kemadruma_cancellation_is_not_hidden(self):
+        zodiac = [
+            "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+            "Libra", "Scorpio", "Sagittarius", "Capricorn",
+            "Aquarius", "Pisces",
+        ]
+        chart = {
+            "planets": {
+                "Moon": {"sign": "Aries"},
+                "Sun": {"sign": "Gemini"},
+                "Mars": {"sign": "Gemini"},
+                "Mercury": {"sign": "Gemini"},
+                "Jupiter": {"sign": "Gemini"},
+                "Venus": {"sign": "Gemini"},
+                "Saturn": {"sign": "Gemini"},
+                "Rahu": {"sign": "Gemini"},
+                "Ketu": {"sign": "Gemini"},
+            }
+        }
+        result = check_kemadruma_yoga(chart, "Aries", zodiac)
+
+        self.assertTrue(result["present"])
+        self.assertEqual(
+            result["cancellation_status"],
+            "cancellation_indicated",
+        )
+        self.assertTrue(result["cancellation_evidence"])
+
+    def test_birth_time_sensitivity_reports_changed_vargas(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        sensitivity = compute_birth_time_sensitivity(
+            self.birth_dt_utc,
+            self.lat,
+            self.lon,
+            chart,
+        )
+
+        self.assertEqual(
+            sensitivity["offsets_minutes"],
+            [-60, -30, -15, 15, 30, 60],
+        )
+        self.assertFalse(sensitivity["stable_within_15_minutes"])
+        self.assertIn(
+            "D9",
+            sensitivity["scenarios"]["15"]["changed_ascendant_vargas"],
+        )
+        self.assertTrue(
+            sensitivity["scenarios"]["60"]["ascendant_sign_changed"]
+        )
+
+    def test_planetary_strength_is_transparent_and_not_shadbala(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        chart = annotate_chart_with_dignity_and_navamsa(chart)
+        chart = annotate_planetary_conditions(chart)
+        profile = compute_planetary_strength_profile(
+            chart,
+            chart["ascendant"]["sign"],
+        )
+
+        self.assertFalse(profile["is_full_shadbala"])
+        self.assertEqual(len(profile["planets"]), 7)
+        for data in profile["planets"].values():
+            self.assertIn("dignity", data)
+            self.assertIn("combustion", data)
+            self.assertIn("vargottama_d1_d9", data)
+            self.assertIn("directional_alignment", data)
+
+    def test_rashi_drishti_movable_fixed_and_dual_rules(self):
+        self.assertEqual(
+            signs_aspected_by("Aries"),
+            ["Leo", "Scorpio", "Aquarius"],
+        )
+        self.assertEqual(
+            signs_aspected_by("Taurus"),
+            ["Cancer", "Libra", "Capricorn"],
+        )
+        self.assertEqual(
+            signs_aspected_by("Gemini"),
+            ["Virgo", "Sagittarius", "Pisces"],
+        )
+
+    def test_rashi_drishti_reports_planets_carried_by_signs(self):
+        chart = compute_chart(self.birth_dt_utc, self.lat, self.lon)
+        result = compute_rashi_drishti(
+            chart, chart["ascendant"]["sign"]
+        )
+
+        self.assertEqual(result["system"], "Jaimini-style rashi drishti")
+        self.assertTrue(result["contacts"])
+        for contact in result["contacts"]:
+            self.assertIn(contact["source_house"], range(1, 13))
+            self.assertIn(contact["target_house"], range(1, 13))
 
 
 if __name__ == "__main__":

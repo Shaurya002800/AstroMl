@@ -12,7 +12,16 @@ import os
 import json
 from groq import Groq
 
-client = Groq()  # reads GROQ_API_KEY from environment
+try:
+    from ..evaluation.safety import evaluate_interpretation_safety
+    from ..evaluation.grounding import evaluate_interpretation_grounding
+except ImportError:
+    from evaluation.safety import evaluate_interpretation_safety
+    from evaluation.grounding import evaluate_interpretation_grounding
+
+
+class UnsafeInterpretationError(ValueError):
+    """Raised when generated interpretation text fails deterministic safety checks."""
 
 
 SYSTEM_PROMPT = """You are an assistant that helps translate structured Vedic astrology \
@@ -60,22 +69,33 @@ standalone positive or negative verdicts. Preserve any convention notes.
 10. Treat house lordships and aspects as supporting evidence. Do not infer a \
 specific event solely from one lord placement or aspect.
 
-11. Functional roles are ownership-based tendencies, not fixed good/bad labels. \
+11. Keep Parashari graha drishti and Jaimini-style rashi drishti separate. \
+Never describe one system's contact as if it came from the other.
+
+12. Functional roles are ownership-based tendencies, not fixed good/bad labels. \
 Preserve mixed-role, Maraka, Dusthana, and Yogakaraka caveats as given.
 
-12. A dispositor chain describes structural dependency. Do not claim that a \
+13. A dispositor chain describes structural dependency. Do not claim that a \
 final dispositor or cycle guarantees a life outcome.
 
-13. Transits are timing context only. Never make a prediction from transit alone; \
+14. Transits are timing context only. Never make a prediction from transit alone; \
 combine it with natal promise, active dasha, and relevant divisional evidence.
 
-14. Domain review "support" and "activation" scores are internal evidence summaries, \
+15. Domain review "support" and "activation" scores are internal evidence summaries, \
 not probabilities. Preserve both supporting and attention evidence.
 
-15. Wellbeing output must never diagnose illness or suggest replacing a qualified \
+16. Wellbeing output must never diagnose illness or suggest replacing a qualified \
 medical professional. Finance output must not be presented as investment advice.
 
-16. End with a brief note reminding the consultant that this is computed data \
+17. If a divisional placement is marked near a boundary, explicitly warn that \
+small birth-time or calculation differences may change that varga placement.
+
+18. Disabled divisional charts must never be inferred or described as calculated.
+
+19. The planetary-strength component profile is explicitly not full Shadbala. \
+Do not rename it Shadbala or treat its internal score as an outcome probability.
+
+20. End with a brief note reminding the consultant that this is computed data \
 to support (not replace) their own session judgment."""
 
 
@@ -98,6 +118,7 @@ def generate_interpretation(report: dict, model: str = "llama-3.3-70b-versatile"
     """
     Send the report to Groq and return the natural-language interpretation.
     """
+    client = Groq()
     response = client.chat.completions.create(
         model=model,
         max_tokens=2000,
@@ -107,7 +128,19 @@ def generate_interpretation(report: dict, model: str = "llama-3.3-70b-versatile"
         ]
     )
 
-    return response.choices[0].message.content
+    interpretation = response.choices[0].message.content
+    safety = evaluate_interpretation_safety(interpretation)
+    if not safety["passed"]:
+        raise UnsafeInterpretationError(
+            f"Generated interpretation failed safety checks: {safety['findings']}"
+        )
+    grounding = evaluate_interpretation_grounding(interpretation, report)
+    if not grounding["passed"]:
+        raise UnsafeInterpretationError(
+            "Generated interpretation introduced unsupported details: "
+            f"{grounding}"
+        )
+    return interpretation
 
 
 if __name__ == "__main__":

@@ -9,15 +9,26 @@ from datetime import timedelta
 
 import swisseph as swe
 
-from chart import (
-    PLANETS,
-    compute_planetary_snapshot,
-    get_julian_day,
-    get_sign_and_degree,
-)
-from dignity import get_dignity
-from house_analysis import ASPECT_OFFSETS, ZODIAC_SIGNS, get_house_number
-from planetary_conditions import annotate_planetary_conditions
+try:
+    from .chart import (
+        PLANETS,
+        compute_planetary_snapshot,
+        get_julian_day,
+        get_sign_and_degree,
+    )
+    from .dignity import get_dignity
+    from .house_analysis import ASPECT_OFFSETS, ZODIAC_SIGNS, get_house_number
+    from .planetary_conditions import annotate_planetary_conditions
+except ImportError:
+    from chart import (
+        PLANETS,
+        compute_planetary_snapshot,
+        get_julian_day,
+        get_sign_and_degree,
+    )
+    from dignity import get_dignity
+    from house_analysis import ASPECT_OFFSETS, ZODIAC_SIGNS, get_house_number
+    from planetary_conditions import annotate_planetary_conditions
 
 
 SLOW_TRANSIT_PLANETS = {"Jupiter", "Saturn", "Rahu", "Ketu"}

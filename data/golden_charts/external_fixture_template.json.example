@@ -1,0 +1,38 @@
+{
+  "fixture_id": "external_example_001",
+  "verification_status": "external_software_verified",
+  "reference_source": "Trusted application export",
+  "verification_evidence": {
+    "reviewer_or_software": "Application or reviewer name",
+    "version_or_credential": "Version or reviewer credential",
+    "verified_at": "2026-06-21T00:00:00+05:30",
+    "artifact_reference": "Private evidence file or review-record identifier"
+  },
+  "settings": {
+    "ayanamsa": "Lahiri",
+    "node_mode": "Mean",
+    "coordinate_frame": "Geocentric sidereal",
+    "house_system": "Whole sign"
+  },
+  "input": {
+    "birth_datetime_utc": "1990-08-15T09:00:00",
+    "latitude": 28.6139,
+    "longitude": 77.209
+  },
+  "tolerances_degrees": {
+    "ascendant": 0.01,
+    "planets": 0.01
+  },
+  "expected": {
+    "ascendant": {
+      "longitude": 0.0,
+      "sign": "Aries"
+    },
+    "planets": {
+      "Sun": {
+        "longitude": 0.0,
+        "sign": "Aries"
+      }
+    }
+  }
+}

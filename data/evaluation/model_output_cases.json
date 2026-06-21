@@ -1,0 +1,23 @@
+{
+  "dataset_version": "0.1.0",
+  "cases": [
+    {
+      "id": "baseline_exact",
+      "fixture_id": "internal_regression_001",
+      "query_datetime_utc": "2026-06-21T06:00:00",
+      "time_precision": "exact"
+    },
+    {
+      "id": "boundary_approximate",
+      "fixture_id": "internal_boundary_001",
+      "query_datetime_utc": "2026-06-21T06:00:00",
+      "time_precision": "within_15_min"
+    },
+    {
+      "id": "high_latitude_unknown_time",
+      "fixture_id": "internal_high_latitude_001",
+      "query_datetime_utc": "2026-06-21T06:00:00",
+      "time_precision": "unknown"
+    }
+  ]
+}

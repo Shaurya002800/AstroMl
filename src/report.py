@@ -10,19 +10,76 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "calculations"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "knowledge_base"))
 
 from datetime import datetime, timezone
-from chart import compute_chart
-from dignity import annotate_chart_with_dignity_and_navamsa, ZODIAC_SIGNS
-from divisional_charts import annotate_chart_with_divisional_charts, get_dasamsa_lagna_and_houses
-from planetary_conditions import annotate_planetary_conditions
-from house_analysis import analyze_house_lordships, compute_parashari_aspects
-from functional_roles import classify_functional_roles
-from dispositors import analyze_dispositors
-from transits import compute_transit_report
-from synthesis import build_domain_reviews
-from dasha import get_current_dasha
-from ashtakavarga import compute_sarvashtakavarga, interpret_house_strength
-from yogas import detect_all_yogas
-from house_significations import get_house_signification
+
+try:
+    from .calculations.chart import compute_chart
+    from .calculations.dignity import (
+        ZODIAC_SIGNS,
+        annotate_chart_with_dignity_and_navamsa,
+    )
+    from .calculations.divisional_charts import (
+        annotate_chart_with_divisional_charts,
+        get_dasamsa_lagna_and_houses,
+    )
+    from .calculations.extended_divisional_charts import (
+        build_extended_divisional_charts,
+    )
+    from .calculations.sensitivity import compute_birth_time_sensitivity
+    from .calculations.planetary_strength import (
+        compute_planetary_strength_profile,
+    )
+    from .calculations.planetary_conditions import (
+        annotate_planetary_conditions,
+    )
+    from .calculations.house_analysis import (
+        analyze_house_lordships,
+        compute_parashari_aspects,
+    )
+    from .calculations.rashi_drishti import compute_rashi_drishti
+    from .calculations.functional_roles import classify_functional_roles
+    from .calculations.dispositors import analyze_dispositors
+    from .calculations.transits import compute_transit_report
+    from .calculations.dasha import get_current_dasha
+    from .calculations.ashtakavarga import (
+        compute_sarvashtakavarga,
+        interpret_house_strength,
+    )
+    from .knowledge_base.yogas import detect_all_yogas
+    from .knowledge_base.house_significations import get_house_signification
+    from .synthesis import build_domain_reviews
+    from .provenance import build_report_provenance
+    from .evaluation.report_quality import evaluate_report_quality
+    from .release import build_release_metadata
+except ImportError:
+    from chart import compute_chart
+    from dignity import annotate_chart_with_dignity_and_navamsa, ZODIAC_SIGNS
+    from divisional_charts import (
+        annotate_chart_with_divisional_charts,
+        get_dasamsa_lagna_and_houses,
+    )
+    from extended_divisional_charts import build_extended_divisional_charts
+    from sensitivity import compute_birth_time_sensitivity
+    from planetary_strength import compute_planetary_strength_profile
+    from planetary_conditions import annotate_planetary_conditions
+    from house_analysis import (
+        analyze_house_lordships,
+        compute_parashari_aspects,
+    )
+    from rashi_drishti import compute_rashi_drishti
+    from functional_roles import classify_functional_roles
+    from dispositors import analyze_dispositors
+    from transits import compute_transit_report
+    from dasha import get_current_dasha
+    from ashtakavarga import (
+        compute_sarvashtakavarga,
+        interpret_house_strength,
+    )
+    from yogas import detect_all_yogas
+    from house_significations import get_house_signification
+    from synthesis import build_domain_reviews
+    from provenance import build_report_provenance
+    from evaluation.report_quality import evaluate_report_quality
+    from release import build_release_metadata
 
 def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
                           query_datetime: datetime = None) -> dict:
@@ -71,10 +128,22 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
     # Layer 1g: Whole-sign house ownership and Parashari aspects
     house_lordships = analyze_house_lordships(chart, ascendant_sign)
     aspects = compute_parashari_aspects(chart, ascendant_sign)
+    rashi_drishti = compute_rashi_drishti(chart, ascendant_sign)
     functional_roles = classify_functional_roles(ascendant_sign)
     dispositors = analyze_dispositors(chart)
     transits = compute_transit_report(
         evaluated_query_datetime,
+        chart,
+        ascendant_sign,
+    )
+    extended_vargas = build_extended_divisional_charts(chart)
+    birth_time_sensitivity = compute_birth_time_sensitivity(
+        birth_datetime_utc,
+        lat,
+        lon,
+        chart,
+    )
+    planetary_strength = compute_planetary_strength_profile(
         chart,
         ascendant_sign,
     )
@@ -88,6 +157,7 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
     # --- Build the consolidated report ---
 
     report = {
+        "release": build_release_metadata(),
         "meta": {
             "birth_datetime_utc": birth_datetime_utc.isoformat(),
             "birth_location": {"latitude": lat, "longitude": lon},
@@ -95,6 +165,8 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
             "ayanamsa": "Lahiri",
             "house_system": "Whole sign for lordships, yogas, and aspects",
         },
+
+        "provenance": build_report_provenance(),
 
         "ascendant": {
             "sign": chart["ascendant"]["sign"],
@@ -133,11 +205,19 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
 
         "parashari_aspects": aspects,
 
+        "rashi_drishti": rashi_drishti,
+
         "functional_roles": functional_roles,
 
         "dispositor_analysis": dispositors,
 
         "transits": transits,
+
+        "extended_divisional_charts": extended_vargas,
+
+        "birth_time_sensitivity": birth_time_sensitivity,
+
+        "planetary_strength": planetary_strength,
 
         "ashtakavarga": {
             "sarva_by_house": {
@@ -182,6 +262,7 @@ def generate_full_report(birth_datetime_utc: datetime, lat: float, lon: float,
         }
 
     report["domain_reviews"] = build_domain_reviews(report)
+    report["quality_checks"] = evaluate_report_quality(report)
 
     return report
 
