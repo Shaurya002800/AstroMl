@@ -13,6 +13,10 @@ This is not the public website. The intended user is the consultant during a liv
 5. `presentation.py` turns the same facts into a conclusion-first report in English, Hindi, or Hinglish for non-expert readers.
 6. The guarded LLM layer remains optional for reviewed consultant synthesis; the default user-facing report is deterministic.
 
+The birth-place picker covers all 28 Indian states and 8 union territories
+with 140 major cities. City-centre coordinates are approximate; use the manual
+location option for villages, overseas births, or more precise coordinates.
+
 ## Run Locally
 
 ```bash

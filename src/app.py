@@ -19,7 +19,11 @@ import pytz
 
 from report import generate_full_report
 from session_log import save_session, list_sessions, load_session
-from cities import INDIAN_CITIES, get_city_list
+from cities import (
+    get_city_coordinates,
+    get_city_list,
+    get_state_list,
+)
 from astrology_model import build_consultation_brief
 from feedback import save_feedback
 from presentation import (
@@ -106,27 +110,69 @@ with st.form("birth_details"):
 
     st.markdown("**Place of Birth**")
 
-    city_options = ["-- Select a city --"] + get_city_list() + ["Other (enter manually)"]
-    selected_city = st.selectbox("City", city_options)
+    state_options = [
+        "-- Select state / union territory --",
+        *get_state_list(),
+        "Other / Outside India",
+    ]
+    selected_state = st.selectbox(
+        "State / Union Territory",
+        state_options,
+    )
+    selected_city = ""
+    birth_place_label = ""
 
-    if selected_city == "Other (enter manually)":
+    if selected_state == "Other / Outside India":
+        birth_place_label = st.text_input("Birth Place Name")
         col3, col4 = st.columns(2)
         with col3:
-            latitude = st.number_input("Latitude", value=28.6139, format="%.4f")
+            latitude = st.number_input(
+                "Latitude",
+                min_value=-90.0,
+                max_value=90.0,
+                value=None,
+                format="%.4f",
+            )
         with col4:
-            longitude = st.number_input("Longitude", value=77.2090, format="%.4f")
+            longitude = st.number_input(
+                "Longitude",
+                min_value=-180.0,
+                max_value=180.0,
+                value=None,
+                format="%.4f",
+            )
         st.caption("Tip: search '[city name] latitude longitude' if unsure")
-    elif selected_city == "-- Select a city --":
-        latitude, longitude = 28.6139, 77.2090
-        st.caption("Select a city above, or choose 'Other' to enter coordinates manually")
+    elif selected_state == "-- Select state / union territory --":
+        latitude, longitude = None, None
+        st.caption("Select the birth state or union territory first")
     else:
-        latitude, longitude = INDIAN_CITIES[selected_city]
-        st.caption(f"Coordinates: {latitude}, {longitude}") 
+        city_options = ["-- Select city --", *get_city_list(selected_state)]
+        selected_city = st.selectbox("City", city_options)
+        coordinates = get_city_coordinates(
+            selected_city,
+            selected_state,
+        )
+        if coordinates:
+            latitude, longitude = coordinates
+            birth_place_label = f"{selected_city}, {selected_state}"
+            st.caption(f"Coordinates: {latitude}, {longitude}")
+        else:
+            latitude, longitude = None, None
+            st.caption("Select the birth city")
 
     submitted = st.form_submit_button("Generate Report", type="primary")
 
 
 if submitted:
+    if latitude is None or longitude is None:
+        st.error(
+            "Select a state and city, or enter confirmed manual coordinates."
+        )
+        st.stop()
+    if selected_state == "Other / Outside India" and not birth_place_label.strip():
+        st.error("Enter the birth place name for a manual location.")
+        st.stop()
+
     with st.spinner("Calculating chart..."):
         tf = TimezoneFinder()
         tz_name = tf.timezone_at(lat=latitude, lng=longitude)
@@ -168,7 +214,9 @@ if submitted:
         birth_details = {
             "date": str(birth_date),
             "time": str(birth_time),
-            "city": selected_city,
+            "city": selected_city or birth_place_label,
+            "state": selected_state,
+            "birth_place": birth_place_label,
             "latitude": latitude,
             "longitude": longitude,
             "utc_datetime": str(utc_dt),

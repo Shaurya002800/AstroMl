@@ -38,7 +38,8 @@ class StreamlitAppTests(unittest.TestCase):
                     app.text_input[0].input("Verification Client")
                     app.date_input[0].set_value(date(1990, 8, 15))
                     app.time_input[0].set_value(time(14, 30))
-                    app.selectbox[2].select("New Delhi")
+                    app.selectbox[2].select("Delhi").run(timeout=60)
+                    app.selectbox[3].select("New Delhi")
                     app.button[0].click().run(timeout=60)
             finally:
                 session_log.LOG_DIR = original_log_dir
@@ -85,7 +86,8 @@ class StreamlitAppTests(unittest.TestCase):
                         os.path.join(ROOT, "src", "app.py"),
                         default_timeout=60,
                     ).run()
-                    app.selectbox[2].select("New Delhi")
+                    app.selectbox[2].select("Delhi").run(timeout=60)
+                    app.selectbox[3].select("New Delhi")
                     app.button[0].click().run(timeout=60)
                     file_count = len(os.listdir(directory))
                     app.session_state["report_language_label"] = "हिंदी"
@@ -99,6 +101,22 @@ class StreamlitAppTests(unittest.TestCase):
                 [item.value for item in app.header],
             )
             self.assertEqual(len(os.listdir(directory)), file_count)
+
+    def test_missing_place_does_not_calculate_with_a_hidden_default(self):
+        app = AppTest.from_file(
+            os.path.join(ROOT, "src", "app.py"),
+            default_timeout=60,
+        ).run()
+        app.button[0].click().run(timeout=60)
+
+        self.assertTrue(any(
+            "Select a state and city" in item.value
+            for item in app.error
+        ))
+        self.assertNotIn(
+            "Chart calculated successfully",
+            [item.value for item in app.success],
+        )
 
 
 if __name__ == "__main__":
