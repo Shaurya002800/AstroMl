@@ -29,10 +29,41 @@ class CityDatabaseTests(unittest.TestCase):
             len(cities)
             for cities in INDIAN_LOCATIONS.values()
         )
-        self.assertGreaterEqual(city_count, 120)
+        self.assertGreaterEqual(city_count, 150)
         self.assertIn("New Delhi", get_city_list("Delhi"))
         self.assertIn("Mumbai", get_city_list("Maharashtra"))
         self.assertIn("Bengaluru", get_city_list("Karnataka"))
+
+    def test_bijnor_district_urban_local_bodies_are_available(self):
+        expected_bijnor_towns = {
+            "Afzalgarh",
+            "Barhapur",
+            "Bijnor",
+            "Chandpur",
+            "Dhampur",
+            "Haldaur",
+            "Jalalabad, Bijnor",
+            "Jhalu",
+            "Kiratpur",
+            "Mandawar",
+            "Nagina",
+            "Najibabad",
+            "Nehtaur",
+            "Noorpur",
+            "Sahanpur",
+            "Sahaspur",
+            "Seohara",
+            "Sherkot",
+        }
+        self.assertTrue(
+            expected_bijnor_towns.issubset(
+                set(get_city_list("Uttar Pradesh"))
+            )
+        )
+        self.assertEqual(
+            get_city_coordinates("Bijnor", "Uttar Pradesh"),
+            (29.3724, 78.1358),
+        )
 
     def test_all_coordinates_are_valid(self):
         for state, cities in INDIAN_LOCATIONS.items():

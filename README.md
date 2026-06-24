@@ -14,8 +14,9 @@ This is not the public website. The intended user is the consultant during a liv
 6. The guarded LLM layer remains optional for reviewed consultant synthesis; the default user-facing report is deterministic.
 
 The birth-place picker covers all 28 Indian states and 8 union territories
-with 140 major cities. City-centre coordinates are approximate; use the manual
-location option for villages, overseas births, or more precise coordinates.
+with 158 major cities and towns, including Bijnor district's urban local-body
+towns. City-centre coordinates are approximate; use the manual location option
+for villages, overseas births, or more precise coordinates.
 
 ## Run Locally
 
