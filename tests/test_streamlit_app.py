@@ -35,6 +35,10 @@ class StreamlitAppTests(unittest.TestCase):
                         os.path.join(ROOT, "src", "app.py"),
                         default_timeout=60,
                     ).run()
+                    self.assertTrue(any(
+                        "Pilot only" in item.value
+                        for item in app.warning
+                    ))
                     app.text_input[0].input("Verification Client")
                     app.date_input[0].set_value(date(1990, 8, 15))
                     app.time_input[0].set_value(time(14, 30))

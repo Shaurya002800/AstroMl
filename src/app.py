@@ -26,6 +26,7 @@ from cities import (
 )
 from astrology_model import build_consultation_brief
 from feedback import save_feedback
+from operational_status import build_operational_status
 from presentation import (
     SUPPORTED_LANGUAGES,
     build_plain_language_report,
@@ -39,6 +40,45 @@ st.set_page_config(page_title="Serenova Astrology Tool", page_icon="🪔", layou
 
 st.title("🪔 Serenova — Astrology Session Tool")
 st.caption("Internal tool · Enter client birth details to generate a chart report")
+
+operational_status = build_operational_status()
+status_label = (
+    "Ready for paid production"
+    if operational_status["production_ready"]
+    else "Pilot only"
+)
+status_message = (
+    f"{status_label}: "
+    f"{len(operational_status['blocking_items'])} release gates remaining"
+)
+if operational_status["production_ready"]:
+    st.success(status_message)
+else:
+    st.warning(status_message)
+
+with st.expander("Production readiness"):
+    st.markdown(f"**Engine:** {operational_status['engine_version']}")
+    st.markdown(f"**Status:** {status_label}")
+    current_fixtures = operational_status[
+        "independent_reference_fixture_count"
+    ]
+    required_fixtures = operational_status[
+        "required_independent_reference_fixtures"
+    ]
+    st.progress(
+        min(current_fixtures / required_fixtures, 1.0),
+        text=(
+            "Independent reference fixtures: "
+            f"{current_fixtures}/{required_fixtures}"
+        ),
+    )
+
+    if operational_status["blocking_items"]:
+        st.markdown("**Next required actions**")
+        for item in operational_status["blocking_items"][:6]:
+            st.markdown(f"- **{item['label']}**: {item['next_step']}")
+    else:
+        st.markdown("All release gates are currently passing.")
 
 language_label = st.segmented_control(
     "Report Language",

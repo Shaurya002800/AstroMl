@@ -56,6 +56,33 @@ class ApiAndPrivacyTests(unittest.TestCase):
             response.json()["required_independent_reference_fixtures"],
             25,
         )
+        self.assertEqual(response.json()["production_readiness"], "pilot_only")
+        self.assertTrue(response.json()["blocking_items"])
+        self.assertTrue(response.json()["next_required_actions"])
+
+    def test_status_explains_release_gate_evidence(self):
+        client = TestClient(app)
+        with patch.dict(
+            os.environ,
+            {"SERENOVA_ADMIN_TOKEN": "admin-secret"},
+            clear=True,
+        ):
+            response = client.get(
+                "/status",
+                headers={"x-api-key": "admin-secret"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        items = response.json()["readiness_items"]
+        target_gate = next(
+            item
+            for item in items
+            if item["check"] == "independent_reference_fixture_target_met"
+        )
+        self.assertEqual(target_gate["status"], "blocked")
+        self.assertEqual(target_gate["progress"]["required"], 25)
+        self.assertIn("evidence", target_gate)
+        self.assertIn("next_step", target_gate)
 
     def test_status_requires_external_release_approvals(self):
         client = TestClient(app)

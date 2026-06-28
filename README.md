@@ -13,6 +13,10 @@ This is not the public website. The intended user is the consultant during a liv
 5. `presentation.py` turns the same facts into a conclusion-first report in English, Hindi, or Hinglish for non-expert readers.
 6. The guarded LLM layer remains optional for reviewed consultant synthesis; the default user-facing report is deterministic.
 
+The Streamlit screen shows a production-readiness panel with the current engine
+status, independent-fixture progress, blocked release gates, and the next
+evidence needed before paid production use.
+
 The birth-place picker covers all 28 Indian states and 8 union territories
 with 158 major cities and towns, including Bijnor district's urban local-body
 towns. City-centre coordinates are approximate; use the manual location option
@@ -99,4 +103,5 @@ python3 src/report.py
 python3 scripts/validate_references.py
 python3 scripts/evaluate_model_outputs.py
 python3 scripts/summarize_feedback.py
+python3 scripts/generate_readiness_report.py
 ```
