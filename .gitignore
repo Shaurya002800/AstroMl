@@ -9,6 +9,7 @@ venv/
 
 .env
 .env.*
+!.env.example
 
 data/sessions/*.json
 !data/sessions/.gitkeep

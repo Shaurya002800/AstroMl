@@ -72,6 +72,22 @@ review evidence is approved through `SERENOVA_EXPERT_REVIEW_APPROVED`,
 `SERENOVA_BACKUP_DRILL_COMPLETED`. Set these only after the corresponding
 signed review or drill artifact exists.
 
+## Deploy For Private Pilot
+
+The app includes Streamlit server config, a Dockerfile, a safe `.env.example`,
+and a deployment readiness check. See [Private Web Deployment](docs/DEPLOYMENT.md).
+
+```bash
+python3 scripts/check_deployment_readiness.py
+docker build -t serenova-astro .
+docker run --env-file .env -p 8501:8501 serenova-astro
+```
+
+Private web pilot deployment can be technically ready before paid-production
+approval. The production-readiness panel and readiness report remain the source
+of truth for external validation, expert review, privacy approval, and backup
+evidence.
+
 ## Design Principle
 
 The AI should not invent astrology. The trusted source of astrological facts is the deterministic calculation and rule engine. The LLM is only a translator and session-writing assistant.
@@ -104,4 +120,5 @@ python3 scripts/validate_references.py
 python3 scripts/evaluate_model_outputs.py
 python3 scripts/summarize_feedback.py
 python3 scripts/generate_readiness_report.py
+python3 scripts/check_deployment_readiness.py
 ```

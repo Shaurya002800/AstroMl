@@ -36,7 +36,64 @@ from secure_storage import SecureStorageConfigurationError
 from time_utils import local_datetime_to_utc
 
 
-st.set_page_config(page_title="Serenova Astrology Tool", page_icon="🪔", layout="centered")
+st.set_page_config(
+    page_title="Serenova Astrology Tool",
+    page_icon="🪔",
+    layout="centered",
+)
+
+
+def inject_responsive_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            max-width: 980px;
+            padding-top: 1.25rem;
+            padding-bottom: 2.5rem;
+        }
+        div[data-testid="stForm"] {
+            border-radius: 8px;
+        }
+        div[data-testid="stExpander"] details {
+            border-radius: 8px;
+        }
+        .stButton > button,
+        .stDownloadButton button {
+            min-height: 2.75rem;
+        }
+        @media (max-width: 760px) {
+            .block-container {
+                padding: 0.75rem 0.85rem 2rem;
+            }
+            h1 {
+                font-size: 1.7rem;
+                line-height: 1.2;
+            }
+            h2 {
+                font-size: 1.3rem;
+            }
+            h3 {
+                font-size: 1.05rem;
+            }
+            div[data-testid="stHorizontalBlock"] {
+                gap: 0.35rem;
+            }
+            div[data-testid="stMetric"] {
+                padding: 0.35rem 0;
+            }
+            .stButton > button,
+            .stDownloadButton button {
+                width: 100%;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+inject_responsive_styles()
 
 st.title("🪔 Serenova — Astrology Session Tool")
 st.caption("Internal tool · Enter client birth details to generate a chart report")

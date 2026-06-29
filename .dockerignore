@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+venv
+.venv
+__pycache__
+*.pyc
+.DS_Store
+.pytest_cache
+.mypy_cache
+.ruff_cache
+data/sessions/*.json
+data/sessions/*.json.enc
+data/audit/*.jsonl
+data/feedback/*.jsonl
